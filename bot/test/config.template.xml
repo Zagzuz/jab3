@@ -1,0 +1,35 @@
+<config>
+    <connector>
+        <allowed_updates>
+            <update type="message"/>
+            <update type="edited_message"/>
+            <update type="channel_post"/>
+        </allowed_updates>
+        <limit>100</limit>
+        <rps>30</rps>
+        <update_channel_size>1024</update_channel_size>
+    </connector>
+    <commands>
+        <command>
+            <scope type="default"/>
+            <name>set_day</name>
+            <desc>dd.mm.yyyy format</desc>
+        </command>
+        <command>
+            <scope type="default"/>
+            <name>please</name>
+            <desc>ordered google image search</desc>
+        </command>
+        <command>
+            <scope type="chat_member" chat_id="-1001367947767" user_id="5363186157"/>
+            <name>pls</name>
+            <desc>randomised google image search</desc>
+        </command>
+    </commands>
+    <imager>
+        <limit>100</limit>
+    </imager>
+    <birthminder>
+        <timezone>Utc</timezone>
+    </birthminder>
+</config>

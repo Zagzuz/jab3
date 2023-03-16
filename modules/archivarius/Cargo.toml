@@ -1,0 +1,18 @@
+[package]
+name = "archivarius"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+api = { path = "../../api" }
+bot = { path = "../../bot" }
+
+async-trait = "0.1.72"
+bincode = "2.0.0-rc.3"
+compact_str = "0.7.1"
+eyre = "0.6.8"
+itertools = "0.11.0"
+log = "0.4.19"
+rand = "0.8.5"
