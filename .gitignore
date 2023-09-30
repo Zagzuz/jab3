@@ -2,3 +2,5 @@
 .idea
 .env
 *.iml
+*.exe
+*.data
