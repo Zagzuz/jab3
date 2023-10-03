@@ -196,7 +196,11 @@ impl Module for Imager {
                 _ => {}
             };
             let result = comm
-                .reply_photo_url(url.as_str(), message.chat.id.into(), message.message_id)
+                .send_photo_url(
+                    url.as_str(),
+                    message.chat.id.into(),
+                    Some(message.message_id),
+                )
                 .await;
             n -= 1;
             match result {

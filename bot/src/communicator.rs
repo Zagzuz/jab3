@@ -32,11 +32,11 @@ pub trait Communicate: Send + Sync {
         parse_mode: Option<ParseMode>,
     ) -> eyre::Result<CommonResponse<Message>>;
 
-    async fn reply_photo_url(
+    async fn send_photo_url(
         &self,
         url: &str,
         chat_id: ChatId,
-        reply_to_message_id: MessageId,
+        reply_to_message_id: Option<MessageId>,
     ) -> eyre::Result<CommonResponse<Message>>;
 
     async fn forward_message(
@@ -161,16 +161,16 @@ impl Communicate for Communicator {
         Connector::send_request::<SendMessage>(&self.token, &request, None).await
     }
 
-    async fn reply_photo_url(
+    async fn send_photo_url(
         &self,
         url: &str,
         chat_id: ChatId,
-        reply_to_message_id: MessageId,
+        reply_to_message_id: Option<MessageId>,
     ) -> eyre::Result<CommonResponse<Message>> {
         let request = SendPhotoRequest {
             photo: Some(url.to_compact_string()),
             chat_id,
-            reply_to_message_id: Some(reply_to_message_id),
+            reply_to_message_id,
             ..Default::default()
         };
         Connector::send_request::<SendPhoto>(&self.token, &request, None).await
