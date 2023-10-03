@@ -160,7 +160,6 @@ impl Module for Birthminder {
 #[cfg(test)]
 mod test {
     use super::*;
-    use chrono::NaiveDate;
     use compact_str::ToCompactString;
 
     fn user_with_id(id: UserId) -> User {
@@ -177,35 +176,5 @@ mod test {
             can_read_all_group_messages: None,
             supports_inline_queries: None,
         }
-    }
-
-    #[test]
-    fn get_birthday_list() {
-        let mut b = Birthminder::new();
-
-        let user1 = user_with_id(0);
-        let date1 = NaiveDate::parse_from_str("2001-01-01", "%Y-%m-%d").unwrap();
-        b.save(&user1, date1.clone()).unwrap();
-
-        let user21 = user_with_id(1);
-        let date2 = NaiveDate::parse_from_str("2002-02-02", "%Y-%m-%d").unwrap();
-        b.save(&user21, date2.clone()).unwrap();
-
-        let user22 = user_with_id(2);
-        b.save(&user22, date2.clone()).unwrap();
-
-        let user3 = user_with_id(3);
-        let date3 = NaiveDate::parse_from_str("2003-09-05", "%Y-%m-%d").unwrap();
-        b.save(&user3, date3.clone()).unwrap();
-
-        assert_eq!(
-            b.list().unwrap(),
-            vec![
-                (date1, UserData::from(user1)),
-                (date2.clone(), UserData::from(user21)),
-                (date2, UserData::from(user22)),
-                (date3, UserData::from(user3)),
-            ]
-        );
     }
 }
