@@ -1,6 +1,5 @@
 use api::proto::UpdateType;
-use std::collections::HashSet;
-use std::path::PathBuf;
+use std::{collections::HashSet, path::PathBuf};
 
 #[derive(Debug)]
 pub struct BotConfig {

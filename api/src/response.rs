@@ -1,3 +1,4 @@
+use crate::basic_types::MessageId;
 use compact_str::CompactString;
 use serde::{de, Deserialize, Deserializer};
 use serde_json::{Map, Value};
@@ -5,7 +6,6 @@ use std::{
     error::Error,
     fmt::{Display, Formatter},
 };
-use crate::basic_types::MessageId;
 
 #[derive(Debug)]
 pub enum CommonResponse<R> {

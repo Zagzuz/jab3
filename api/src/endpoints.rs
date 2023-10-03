@@ -6,8 +6,8 @@ use crate::{
         CopyMessageRequest, DeleteMessageRequest, DeleteWebhookRequest, ForwardMessageRequest,
         GetUpdatesRequest, SendChatActionRequest, SendMessageRequest, SendPhotoRequest,
     },
+    response::MessageIdResponse,
 };
-use crate::response::MessageIdResponse;
 
 pub trait Endpoint {
     type Request;
