@@ -96,8 +96,12 @@ mod tests {
             "result": {
                 "message_id": 123,
                 "date": 2345,
+                "chat": {
+                    "id": 1,
+                    "type": "group",
+                }
             }
         });
-        let response = serde_json::from_value::<CommonResponse<Message>>(message).unwrap();
+        serde_json::from_value::<CommonResponse<Message>>(message).unwrap();
     }
 }
