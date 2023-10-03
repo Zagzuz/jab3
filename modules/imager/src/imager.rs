@@ -9,7 +9,7 @@ use image_search::Arguments;
 use log::{debug, error};
 use rand::Rng;
 
-use crate::config::ImagerConfig;
+use crate::{config::ImagerConfig, error::REPLIED_MESSAGE_NOT_FOUND};
 use api::{
     proto::{ChatAction, Message},
     response::CommonResponse,
@@ -170,14 +170,24 @@ impl Module for Imager {
                 return Ok(());
             }
         };
-        loop {
-            let (action_sent, url) = tokio::join!(
-                comm.send_chat_action(message.chat.id.into(), None, ChatAction::UploadPhoto),
-                self.search_data(message.chat.id, cmd.query().as_str(), name.into())
-            );
-            let url = url?;
-            debug!("result for '{}': '{}'", cmd.query(), url);
-            match action_sent {
+        let (action_sent, url) = tokio::join!(
+            comm.send_chat_action(message.chat.id.into(), None, ChatAction::UploadPhoto),
+            self.search_data(message.chat.id, cmd.query().as_str(), name.into())
+        );
+        let url = url?;
+        let mut n = self.config.max_reply_attempts;
+        let query = self
+            .chat_data
+            .get(&message.chat.id)
+            .unwrap_or_else(|| {
+                panic!("data not found for a search completed just now, message = {message:?}")
+            })
+            .last_query
+            .as_str();
+        debug!("result for '{query}': '{url}'");
+        let mut reply_id = Some(message.message_id);
+        while n > 0 {
+            match &action_sent {
                 Ok(CommonResponse::Ok(action_sent)) if !action_sent => {
                     error!("upload_image action not sent");
                 }
@@ -187,15 +197,26 @@ impl Module for Imager {
                 _ => {}
             };
             let result = comm
-                .reply_photo_url(url.as_str(), message.chat.id.into(), message.message_id)
+                .send_photo_url(url.as_str(), message.chat.id.into(), reply_id)
                 .await;
             match result {
                 Err(err) => error!("failed to send, {err}, retrying..."),
+                Ok(CommonResponse::Err(err)) if err.description == REPLIED_MESSAGE_NOT_FOUND => {
+                    reply_id = None;
+                    continue;
+                }
                 Ok(CommonResponse::Err(err)) => error!("failed to send, {err}, retrying..."),
-                _ => break,
+                _ => {
+                    return Ok(());
+                }
             }
+            n -= 1;
         }
-        Ok(())
+        bail!(
+            "imager failed to send the result after {} consecutive fails, message = {:?}",
+            self.config.max_reply_attempts,
+            message
+        )
     }
 }
 

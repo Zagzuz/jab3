@@ -3,6 +3,7 @@ use eyre::ensure;
 #[derive(Debug)]
 pub struct ImagerConfig {
     pub limit: usize,
+    pub max_reply_attempts: usize,
 }
 
 impl ImagerConfig {
@@ -17,6 +18,9 @@ impl ImagerConfig {
 
 impl Default for ImagerConfig {
     fn default() -> Self {
-        Self { limit: 100 }
+        Self {
+            limit: 100,
+            max_reply_attempts: 5,
+        }
     }
 }
