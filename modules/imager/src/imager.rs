@@ -9,7 +9,7 @@ use image_search::Arguments;
 use log::{debug, error};
 use rand::Rng;
 
-use crate::config::ImagerConfig;
+use crate::{config::ImagerConfig, error::REPLIED_MESSAGE_NOT_FOUND};
 use api::{
     proto::{ChatAction, Message},
     response::CommonResponse,
@@ -185,6 +185,7 @@ impl Module for Imager {
             .last_query
             .as_str();
         debug!("result for '{query}': '{url}'");
+        let mut reply_id = Some(message.message_id);
         while n > 0 {
             match &action_sent {
                 Ok(CommonResponse::Ok(action_sent)) if !action_sent => {
@@ -196,20 +197,20 @@ impl Module for Imager {
                 _ => {}
             };
             let result = comm
-                .send_photo_url(
-                    url.as_str(),
-                    message.chat.id.into(),
-                    Some(message.message_id),
-                )
+                .send_photo_url(url.as_str(), message.chat.id.into(), reply_id)
                 .await;
-            n -= 1;
             match result {
                 Err(err) => error!("failed to send, {err}, retrying..."),
+                Ok(CommonResponse::Err(err)) if err.description == REPLIED_MESSAGE_NOT_FOUND => {
+                    reply_id = None;
+                    continue;
+                }
                 Ok(CommonResponse::Err(err)) => error!("failed to send, {err}, retrying..."),
                 _ => {
                     return Ok(());
                 }
             }
+            n -= 1;
         }
         bail!(
             "imager failed to send the result after {} consecutive fails, message = {:?}",
