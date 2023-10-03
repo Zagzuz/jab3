@@ -55,8 +55,8 @@ impl Error for ErrorResponse {
 
 impl<'de, R: Deserialize<'de>> Deserialize<'de> for CommonResponse<R> {
     fn deserialize<D>(deserializer: D) -> Result<CommonResponse<R>, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         let mut map = Map::deserialize(deserializer)?;
 

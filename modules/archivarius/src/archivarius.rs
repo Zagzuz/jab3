@@ -73,8 +73,8 @@ impl Archivarius {
                 None,
                 None,
             )
-                .await?
-                .into_result()?,
+            .await?
+            .into_result()?,
         ))
     }
 
@@ -87,17 +87,17 @@ impl Archivarius {
             .guesses
             .message_id
             .and_then(|id| chat_data.messages.get(&ChatMessageInfo::new(id)))
-            else {
-                comm.reply_message(
-                    "No messages to guess",
-                    message.chat.id.into(),
-                    message.message_id,
-                    None,
-                )
-                    .await?
-                    .into_result()?;
-                return Ok(());
-            };
+        else {
+            comm.reply_message(
+                "No messages to guess",
+                message.chat.id.into(),
+                message.message_id,
+                None,
+            )
+            .await?
+            .into_result()?;
+            return Ok(());
+        };
         let Some(author_info) = guess_message_info.author_info.as_ref() else {
             bail!("no author info for guess message, info = {guess_message_info:?}");
         };
@@ -111,8 +111,8 @@ impl Archivarius {
             message.message_id,
             Some(ParseMode::MarkdownV2),
         )
-            .await?
-            .into_result()?;
+        .await?
+        .into_result()?;
         Ok(())
     }
 
@@ -124,8 +124,8 @@ impl Archivarius {
                 message.message_id,
                 None,
             )
-                .await?
-                .into_result()?;
+            .await?
+            .into_result()?;
             return Ok(());
         };
 
@@ -136,17 +136,17 @@ impl Archivarius {
             .iter()
             .filter(|info| info.author_info.is_some())
             .choose(&mut rand::thread_rng())
-            else {
-                comm.reply_message(
-                    "No messages to guess",
-                    message.chat.id.into(),
-                    message.message_id,
-                    None,
-                )
-                    .await?
-                    .into_result()?;
-                return Ok(());
-            };
+        else {
+            comm.reply_message(
+                "No messages to guess",
+                message.chat.id.into(),
+                message.message_id,
+                None,
+            )
+            .await?
+            .into_result()?;
+            return Ok(());
+        };
 
         let address = info.address();
 
@@ -164,8 +164,8 @@ impl Archivarius {
             None,
             None,
         )
-            .await?
-            .into_result()?;
+        .await?
+        .into_result()?;
 
         data.guesses.message_id.replace(address.message_id);
 
@@ -182,9 +182,9 @@ impl Archivarius {
                 let message_id = d.guesses.message_id?;
                 Some((&mut d.users, &d.messages, &mut d.guesses, message_id))
             })
-            else {
-                bail!("cannot check the guess: the game has not yet started");
-            };
+        else {
+            bail!("cannot check the guess: the game has not yet started");
+        };
 
         let message_info = messages
             .get(&ChatMessageInfo::new(guess_message_id))
@@ -216,7 +216,7 @@ impl Archivarius {
                 message.message_id,
                 None,
             )
-                .await?;
+            .await?;
             return Ok(true);
         }
         Ok(false)
@@ -230,7 +230,7 @@ impl Archivarius {
                 message.message_id,
                 None,
             )
-                .await?;
+            .await?;
             return Ok(());
         };
 
@@ -252,14 +252,14 @@ impl Archivarius {
                 .map(|(name, score)| format!("{name} \t{score}")),
             "\n".into(),
         )
-            .collect();
+        .collect();
         comm.reply_message(
             &format!("```\n{leaders}\n```"),
             message.chat.id.into(),
             message.message_id,
             Some(ParseMode::MarkdownV2),
         )
-            .await?;
+        .await?;
 
         Ok(())
     }
@@ -269,9 +269,9 @@ impl Archivarius {
             .chat_data
             .get(&message.chat.id)
             .and_then(|d| d.active_command.as_ref())
-            else {
-                return;
-            };
+        else {
+            return;
+        };
         match active_command {
             ActiveCommand::DevSave(chat_id) => {
                 self.chat_data
@@ -313,8 +313,8 @@ impl Module for Archivarius {
                         message.message_id,
                         None,
                     )
-                        .await?
-                        .into_result()?;
+                    .await?
+                    .into_result()?;
                 }
             }
             CommandName::Save => {
@@ -350,8 +350,8 @@ impl Module for Archivarius {
                         message.message_id,
                         None,
                     )
-                        .await?
-                        .into_result()?;
+                    .await?
+                    .into_result()?;
                     return Ok(());
                 };
                 comm.reply_message(
@@ -360,8 +360,8 @@ impl Module for Archivarius {
                     message.message_id,
                     None,
                 )
-                    .await?
-                    .into_result()?;
+                .await?
+                .into_result()?;
                 self.chat_data
                     .entry(message.chat.id)
                     .or_default()
@@ -381,8 +381,8 @@ impl Module for Archivarius {
                         message.message_id,
                         None,
                     )
-                        .await?
-                        .into_result()?;
+                    .await?
+                    .into_result()?;
                 } else {
                     self.chat_data
                         .entry(message.chat.id)
@@ -410,14 +410,14 @@ impl Persistence for Archivarius {
     }
 
     fn deserialize(&mut self, bytes: Self::Input) -> eyre::Result<()>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         self.chat_data = bincode::decode_from_slice::<HashMap<ChatIntId, ChatData>, _>(
             bytes.as_slice(),
             bincode::config::standard(),
         )?
-            .0;
+        .0;
         Ok(())
     }
 }

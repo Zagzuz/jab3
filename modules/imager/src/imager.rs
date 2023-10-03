@@ -211,14 +211,14 @@ impl Persistence for Imager {
     }
 
     fn deserialize(&mut self, input: Self::Input) -> eyre::Result<()>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         self.chat_data = bincode::decode_from_slice::<ChatData, _>(
             input.as_slice(),
             bincode::config::standard(),
         )?
-            .0;
+        .0;
         Ok(())
     }
 }

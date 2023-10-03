@@ -59,10 +59,10 @@ impl Connector {
         data: &E::Request,
         file: Option<multipart::Form>,
     ) -> eyre::Result<CommonResponse<E::Response>>
-        where
-            E: Endpoint,
-            E::Request: Serialize,
-            E::Response: for<'de> Deserialize<'de> + std::fmt::Debug,
+    where
+        E: Endpoint,
+        E::Request: Serialize,
+        E::Response: for<'de> Deserialize<'de> + std::fmt::Debug,
     {
         let url = Self::query_url::<E>(token);
         let client = reqwest::Client::new();
@@ -70,8 +70,8 @@ impl Connector {
             Some(form) => client.request(E::METHOD, url).multipart(form),
             None => client.request(E::METHOD, url),
         }
-            .json(data)
-            .build()?;
+        .json(data)
+        .build()?;
         let text = client.execute(request).await?.text().await?;
         let response =
             serde_json::from_str::<CommonResponse<E::Response>>(&text).map_err(|err| {

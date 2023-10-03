@@ -41,7 +41,7 @@ pub enum State {
     Shutdown,
 }
 
-type BinPersistentModule = Box<dyn PersistentModule<Input=Vec<u8>, Output=Vec<u8>>>;
+type BinPersistentModule = Box<dyn PersistentModule<Input = Vec<u8>, Output = Vec<u8>>>;
 
 impl Bot {
     pub fn new(token: &str, state_rx: Receiver<State>) -> Self {
@@ -70,7 +70,7 @@ impl Bot {
     pub fn add_module(
         &mut self,
         name: &str,
-        module: impl PersistentModule<Output=Vec<u8>, Input=Vec<u8>> + 'static,
+        module: impl PersistentModule<Output = Vec<u8>, Input = Vec<u8>> + 'static,
     ) {
         if self.modules.contains_key(name) {
             error!("failed to insert '{name}' as the module with that name is present already");
@@ -103,7 +103,7 @@ impl Bot {
                 .values_mut()
                 .map(|m| m.try_execute_command(&self.communicator, &cmd, &message)),
         )
-            .await?;
+        .await?;
 
         Ok(())
     }
@@ -257,7 +257,7 @@ impl Persistence for Bot {
             input.as_slice(),
             bincode::config::standard(),
         )?
-            .0;
+        .0;
 
         self.last_update_id = data.last_update_id;
 

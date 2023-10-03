@@ -110,7 +110,7 @@ impl<'de> Deserialize<'de> for CommonUpdate {
                     return Err(de::Error::custom("unknown update"));
                 }
             }
-                .map_err(de::Error::custom)?;
+            .map_err(de::Error::custom)?;
         Ok(CommonUpdate { id, data: update })
     }
 }
