@@ -106,7 +106,7 @@ impl Archivarius {
             .as_ref()
             .unwrap_or(&author_info.full_name);
         comm.reply_message(
-            &(format!("That was `@{name}`") + r#"\!"#),
+            &(format!("That was `@{name}`") + r"\!"),
             message.chat.id.into(),
             message.message_id,
             Some(ParseMode::MarkdownV2),
