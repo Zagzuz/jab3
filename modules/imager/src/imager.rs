@@ -5,7 +5,7 @@ use std::{collections::HashMap, str::FromStr};
 
 use api::basic_types::ChatIntId;
 use eyre::{bail, ensure};
-use image_search::Arguments;
+use image_search::{Arguments, Format};
 use log::{debug, error};
 use rand::Rng;
 
@@ -31,6 +31,7 @@ type ChatData = HashMap<ChatIntId, SearchData>;
 
 #[derive(Debug, Encode, Decode, Default)]
 pub struct SearchData {
+    last_format: ImageFormat,
     last_query: String,
     last_results: Vec<String>,
     seq_index: usize,
@@ -46,8 +47,24 @@ enum Mode {
 impl From<CommandName> for Mode {
     fn from(name: CommandName) -> Self {
         match name {
-            CommandName::Pls => Mode::Random,
-            CommandName::Please => Mode::Sequential,
+            CommandName::Pls | CommandName::Gif => Mode::Random,
+            CommandName::Please | CommandName::Gif1 => Mode::Sequential,
+        }
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Encode, Decode, Eq, Copy, Clone)]
+enum ImageFormat {
+    #[default]
+    Pic,
+    Gif,
+}
+
+impl From<CommandName> for ImageFormat {
+    fn from(name: CommandName) -> Self {
+        match name {
+            CommandName::Pls | CommandName::Please => ImageFormat::Pic,
+            CommandName::Gif | CommandName::Gif1 => ImageFormat::Gif,
         }
     }
 }
@@ -91,15 +108,25 @@ impl Imager {
         data: &mut SearchData,
         query: &str,
         mode: Mode,
+        format: ImageFormat,
         limit: usize,
     ) -> eyre::Result<String> {
         if query.is_empty() {
             ensure!(!data.last_query.is_empty(), "query is empty");
-        } else if data.last_query != query {
-            data.last_query = query.into();
-            data.seq_index = 0;
         }
-        let args = Arguments::new(&data.last_query, limit);
+        if (query.is_empty() || data.last_query == query)
+            && data.last_format == format
+            && !data.last_results.is_empty()
+        {
+            return Ok(Self::choose_result(data, mode));
+        }
+        data.last_format = format;
+        data.last_query = query.into();
+        data.seq_index = 0;
+        let args = match format {
+            ImageFormat::Pic => Arguments::new(&data.last_query, limit),
+            ImageFormat::Gif => Arguments::new(&data.last_query, limit).format(Format::Gif),
+        };
         data.last_results = image_search::urls(args.clone()).await?;
         ensure!(!data.last_results.is_empty(), "no results");
         let url = Self::choose_result(data, mode);
@@ -111,12 +138,13 @@ impl Imager {
         chat_id: ChatIntId,
         query: &str,
         mode: Mode,
+        format: ImageFormat,
     ) -> eyre::Result<String> {
         if let Some(data) = self.chat_data.get_mut(&chat_id) {
-            Self::search(data, query, mode, self.config.limit).await
+            Self::search(data, query, mode, format, self.config.limit).await
         } else {
             let mut data = SearchData::default();
-            let url = Self::search(&mut data, query, Mode::Random, self.config.limit).await?;
+            let url = Self::search(&mut data, query, mode, format, self.config.limit).await?;
             let _ = self.chat_data.insert(chat_id, data);
             Ok(url)
         }
@@ -127,6 +155,8 @@ impl Imager {
 enum CommandName {
     Please,
     Pls,
+    Gif,
+    Gif1,
 }
 
 impl FromStr for CommandName {
@@ -148,6 +178,14 @@ impl FromStr for CommandName {
             "Плс" => Ok(CommandName::Pls),
             "плз" => Ok(CommandName::Pls),
             "Плз" => Ok(CommandName::Pls),
+            "Gif" => Ok(CommandName::Gif),
+            "gif" => Ok(CommandName::Gif),
+            "Гиф" => Ok(CommandName::Gif),
+            "гиф" => Ok(CommandName::Gif),
+            "Gif1" => Ok(CommandName::Gif1),
+            "gif1" => Ok(CommandName::Gif1),
+            "Гиф1" => Ok(CommandName::Gif1),
+            "гиф1" => Ok(CommandName::Gif1),
             _ => {
                 bail!("failed to recognize '{s}' as a possible command")
             }
@@ -172,7 +210,12 @@ impl Module for Imager {
         };
         let (action_sent, url) = tokio::join!(
             comm.send_chat_action(message.chat.id.into(), None, ChatAction::UploadPhoto),
-            self.search_data(message.chat.id, cmd.query().as_str(), name.into())
+            self.search_data(
+                message.chat.id,
+                cmd.query().as_str(),
+                name.into(),
+                name.into()
+            )
         );
         let url = url?;
         let mut n = self.config.max_reply_attempts;
