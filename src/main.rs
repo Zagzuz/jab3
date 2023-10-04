@@ -26,9 +26,11 @@ async fn main() {
 
     let (tx, rx) = mpsc::channel::<State>(1);
 
+    let backup_path = dotenv::var("DATA_PATH").unwrap();
+
     let bot_config = BotConfig {
         skip_missed_updates: false,
-        backup_path: "jab.data".into(),
+        backup_path: backup_path.into(),
         ..Default::default()
     };
     let mut bot = Bot::with_config(token.as_str(), rx, bot_config);
