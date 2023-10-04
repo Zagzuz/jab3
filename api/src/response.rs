@@ -66,10 +66,12 @@ impl<'de, R: Deserialize<'de>> Deserialize<'de> for CommonResponse<R> {
             .map(Deserialize::deserialize)?
             .map_err(de::Error::custom)?;
         if ok {
-            let result = map.into_iter().next().unwrap().1;
-            R::deserialize(result)
-                .map(CommonResponse::Ok)
-                .map_err(de::Error::custom)
+            let result = map
+                .remove("result")
+                .ok_or_else(|| de::Error::missing_field("result"))
+                .map(R::deserialize)?
+                .map_err(de::Error::custom)?;
+            Ok(CommonResponse::Ok(result))
         } else {
             let rest = Value::Object(map);
             ErrorResponse::deserialize(rest)
@@ -103,5 +105,8 @@ mod tests {
             }
         });
         serde_json::from_value::<CommonResponse<Message>>(message).unwrap();
+
+        let message = json!({"ok":true,"result":true,"description":"Webhook was set"});
+        serde_json::from_value::<CommonResponse<bool>>(message).unwrap();
     }
 }
