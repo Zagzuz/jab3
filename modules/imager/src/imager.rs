@@ -121,7 +121,9 @@ impl Imager {
             return Ok(Self::choose_result(data, mode));
         }
         data.last_format = format;
-        data.last_query = query.into();
+        if !query.is_empty() {
+            data.last_query = query.into();
+        }
         data.seq_index = 0;
         let args = match format {
             ImageFormat::Pic => Arguments::new(&data.last_query, limit),
