@@ -210,14 +210,10 @@ impl Module for Imager {
                 return Ok(());
             }
         };
+        let format: ImageFormat = name.into();
         let (action_sent, url) = tokio::join!(
             comm.send_chat_action(message.chat.id.into(), None, ChatAction::UploadPhoto),
-            self.search_data(
-                message.chat.id,
-                cmd.query().as_str(),
-                name.into(),
-                name.into()
-            )
+            self.search_data(message.chat.id, cmd.query().as_str(), name.into(), format)
         );
         let url = url?;
         let mut n = self.config.max_reply_attempts;
@@ -241,9 +237,15 @@ impl Module for Imager {
                 }
                 _ => {}
             };
-            let result = comm
-                .send_photo_url(url.as_str(), message.chat.id.into(), reply_id)
-                .await;
+            let result = match format {
+                ImageFormat::Pic => {
+                    comm.send_photo_url(url.as_str(), message.chat.id.into(), reply_id)
+                }
+                ImageFormat::Gif => {
+                    comm.send_animation_url(url.as_str(), message.chat.id.into(), reply_id)
+                }
+            }
+            .await;
             match result {
                 Err(err) => error!("failed to send, {err}, retrying..."),
                 Ok(CommonResponse::Err(err)) if err.description == REPLIED_MESSAGE_NOT_FOUND => {

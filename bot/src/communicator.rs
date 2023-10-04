@@ -2,12 +2,13 @@ use crate::connector::Connector;
 use api::{
     basic_types::{MessageId, MessageThreadId},
     endpoints::{
-        CopyMessage, DeleteMessage, ForwardMessage, SendChatAction, SendMessage, SendPhoto,
+        CopyMessage, DeleteMessage, ForwardMessage, SendAnimation, SendChatAction, SendMessage,
+        SendPhoto,
     },
     proto::{ChatAction, ChatId, Message, MessageEntity, ParseMode, ReplyMarkup},
     request::{
-        CopyMessageRequest, DeleteMessageRequest, ForwardMessageRequest, SendChatActionRequest,
-        SendMessageRequest, SendPhotoRequest,
+        CopyMessageRequest, DeleteMessageRequest, ForwardMessageRequest, SendAnimationRequest,
+        SendChatActionRequest, SendMessageRequest, SendPhotoRequest,
     },
     response::{CommonResponse, MessageIdResponse},
 };
@@ -33,6 +34,13 @@ pub trait Communicate: Send + Sync {
     ) -> eyre::Result<CommonResponse<Message>>;
 
     async fn send_photo_url(
+        &self,
+        url: &str,
+        chat_id: ChatId,
+        reply_to_message_id: Option<MessageId>,
+    ) -> eyre::Result<CommonResponse<Message>>;
+
+    async fn send_animation_url(
         &self,
         url: &str,
         chat_id: ChatId,
@@ -174,6 +182,21 @@ impl Communicate for Communicator {
             ..Default::default()
         };
         Connector::send_request::<SendPhoto>(&self.token, &request, None).await
+    }
+
+    async fn send_animation_url(
+        &self,
+        url: &str,
+        chat_id: ChatId,
+        reply_to_message_id: Option<MessageId>,
+    ) -> eyre::Result<CommonResponse<Message>> {
+        let request = SendAnimationRequest {
+            animation: Some(url.to_compact_string()),
+            chat_id,
+            reply_to_message_id,
+            ..Default::default()
+        };
+        Connector::send_request::<SendAnimation>(&self.token, &request, None).await
     }
 
     async fn forward_message(

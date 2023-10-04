@@ -115,3 +115,38 @@ pub struct DeleteMessageRequest {
     pub chat_id: ChatId,
     pub message_id: MessageId,
 }
+
+/// Use this method to send photos. On success, the sent Message is returned.
+/// https://core.telegram.org/bots/api#sendanimation
+#[skip_serializing_none]
+#[derive(Debug, Derivative, Serialize)]
+#[derivative(Default)]
+pub struct SendAnimationRequest {
+    pub chat_id: ChatId,
+    pub message_thread_id: Option<i64>,
+    /// Animation to send. Pass a file_id as String to send an animation that exists
+    /// on the Telegram servers (recommended), pass an HTTP URL as a String
+    /// for Telegram to get an animation from the Internet, or upload a new animation using multipart/form-data.
+    /// [More information on Sending Files »](https://core.telegram.org/bots/api#sending-files)
+    pub animation: Option<CompactString>,
+    pub duration: Option<i32>,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    /// Thumbnail of the file sent; can be ignored if thumbnail generation for the file is supported server-side.
+    /// The thumbnail should be in JPEG format and less than 200 kB in size.
+    /// A thumbnail's width and height should not exceed 320. Ignored if the file is not uploaded
+    /// using multipart/form-data. Thumbnails can't be reused and can be only uploaded as a new file,
+    /// so you can pass “attach://<file_attach_name>” if the thumbnail was uploaded
+    /// using multipart/form-data under <file_attach_name>.
+    /// [More information on Sending Files »](https://core.telegram.org/bots/api#sending-files)
+    pub thumbnail: Option<CompactString>,
+    pub caption: Option<CompactString>,
+    pub parse_mode: Option<ParseMode>,
+    pub caption_entities: Option<Vec<MessageEntity>>,
+    pub has_spoiler: Option<bool>,
+    pub disable_notification: Option<bool>,
+    pub protect_content: Option<bool>,
+    pub reply_to_message_id: Option<i32>,
+    pub allow_sending_without_reply: Option<bool>,
+    pub reply_markup: Option<ReplyMarkup>,
+}

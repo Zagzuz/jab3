@@ -4,7 +4,8 @@ use crate::{
     proto::{CommonUpdate, Message},
     request::{
         CopyMessageRequest, DeleteMessageRequest, DeleteWebhookRequest, ForwardMessageRequest,
-        GetUpdatesRequest, SendChatActionRequest, SendMessageRequest, SendPhotoRequest,
+        GetUpdatesRequest, SendAnimationRequest, SendChatActionRequest, SendMessageRequest,
+        SendPhotoRequest,
     },
     response::MessageIdResponse,
 };
@@ -92,4 +93,14 @@ impl Endpoint for DeleteMessage {
 
     const METHOD: Method = Method::POST;
     const PATH: &'static str = "deleteMessage";
+}
+
+pub struct SendAnimation;
+
+impl Endpoint for SendAnimation {
+    type Request = SendAnimationRequest;
+    type Response = Message;
+
+    const METHOD: Method = Method::POST;
+    const PATH: &'static str = "sendAnimation";
 }
