@@ -1,9 +1,6 @@
 on:
   pull_request:
   push:
-    branches:
-      - main
-
 
 name: Check and Deploy
 
@@ -11,6 +8,7 @@ jobs:
   check:
     name: Check
     runs-on: ubuntu-latest
+    environment: prod
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -25,6 +23,7 @@ jobs:
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
+    environment: prod
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -41,6 +40,7 @@ jobs:
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
+    environment: prod
     steps:
       - uses: actions/checkout@v1
       - run: rustup component add clippy
@@ -52,6 +52,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    environment: prod
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -62,6 +63,7 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    environment: prod-manual
     needs: [Check, Clippy, Test]
     steps:
       - name: install ssh keys
@@ -70,6 +72,6 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
       - name: connect, pull, recompile and restart
-        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && git checkout ${{ secrets.MAIN_BRANCH }} && git reset --hard HEAD^ && git pull && ${{ secrets.CARGO }} build --release && systemctl restart ${{ secrets.SERVICE_NAME }}"
+        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && git checkout -f ${{ secrets.MAIN_BRANCH }} && git pull && ${{ secrets.CARGO }} build --release && systemctl restart ${{ secrets.SERVICE_NAME }}"
       - name: cleanup
         run: rm -rf ~/.ssh
