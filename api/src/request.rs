@@ -46,7 +46,7 @@ pub struct SetWebhookRequest {
 #[skip_serializing_none]
 #[derive(Debug, Default, Serialize)]
 pub struct DeleteWebhookRequest {
-    drop_pending_updates: Option<bool>,
+    pub drop_pending_updates: Option<bool>,
 }
 
 /// Use this method to send photos. On success, the sent Message is returned.

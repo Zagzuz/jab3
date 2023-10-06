@@ -1,3 +1,4 @@
+use crate::connector::ConnectorMode;
 use api::proto::UpdateType;
 use compact_str::CompactString;
 use std::{collections::HashSet, path::PathBuf};
@@ -8,6 +9,7 @@ pub struct BotConfig {
     pub update_limit: Option<u32>,
     pub polling_timeout: Option<u32>,
     pub skip_missed_updates: bool,
+    pub connector_mode: ConnectorMode,
     pub work_dir: PathBuf,
     pub data_file_name: CompactString,
 }
@@ -21,6 +23,7 @@ impl Default for BotConfig {
             skip_missed_updates: false,
             work_dir: Default::default(),
             data_file_name: "jab.data".into(),
+            connector_mode: Default::default(),
         }
     }
 }

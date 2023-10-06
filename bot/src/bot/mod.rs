@@ -2,8 +2,9 @@ use crate::{
     bot::{command::BotCommandInfo, config::BotConfig},
     communicator::{Communicate, Communicator},
     connector::{
+        polling::{PollingConnector, PollingConnectorConfig},
         webhook::{WebhookConnector, WebhookConnectorConfig},
-        Connector,
+        Connector, ConnectorMode,
     },
     module::PersistentModule,
     persistence::Persistence,
@@ -53,28 +54,31 @@ impl Bot {
     }
 
     pub fn with_config(token: &str, state_rx: Receiver<State>, config: BotConfig) -> Self {
-        /*let connector_config = PollingConnectorConfig {
+        let connector: Box<dyn Connector> = match config.connector_mode {
+            ConnectorMode::Polling => {
+                let connector_config = PollingConnectorConfig {
                     allowed_updates: config.allowed_updates.into_iter().collect(),
                     limit: config.update_limit,
                     timeout: config.polling_timeout,
+                    drop_pending_updates: config.skip_missed_updates,
                 };
-
-                let connector = PollingConnector::with_config(token, connector_config);
-        */
-
-        let ip_address = dotenv::var("IP_V4_ADDR").unwrap().to_compact_string();
-        let connector_config = WebhookConnectorConfig {
-            https_url: Some(ip_address.clone()),
-            ip_address: Some(ip_address),
-            drop_pending_updates: config.skip_missed_updates,
-            allowed_updates: config.allowed_updates.into_iter().collect(),
-            ..Default::default()
+                Box::new(PollingConnector::with_config(token, connector_config))
+            }
+            ConnectorMode::Webhook => {
+                let ip_address = dotenv::var("IP_V4_ADDR").unwrap().to_compact_string();
+                let connector_config = WebhookConnectorConfig {
+                    https_url: Some(ip_address.clone()),
+                    ip_address: Some(ip_address),
+                    drop_pending_updates: config.skip_missed_updates,
+                    allowed_updates: config.allowed_updates.into_iter().collect(),
+                    ..Default::default()
+                };
+                Box::new(WebhookConnector::with_config(token, connector_config))
+            }
         };
 
-        let connector = WebhookConnector::with_config(token, connector_config);
-
         Self {
-            connector: Box::new(connector),
+            connector,
             communicator: Communicator::new(token),
             last_update_id: 0,
             modules: Default::default(),

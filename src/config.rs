@@ -1,18 +1,21 @@
+use bot::connector::ConnectorMode;
 use compact_str::CompactString;
 use eyre::ensure;
 use serde::Deserialize;
 use std::path::Path;
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize)]
 pub struct GlobalConfig {
     #[serde(default)]
-    pub work_dir: CompactString,
+    pub connector_mode: ConnectorMode,
     pub data_file_name: CompactString,
+    pub work_dir: CompactString,
 }
 
 impl Default for GlobalConfig {
     fn default() -> Self {
         Self {
+            connector_mode: Default::default(),
             work_dir: Default::default(),
             data_file_name: "jab3.data".into(),
         }

@@ -3,6 +3,7 @@ pub(crate) mod polling;
 pub(crate) mod webhook;
 
 use async_trait::async_trait;
+use derive_more::Display;
 
 use eyre::eyre;
 use http::HeaderMap;
@@ -69,8 +70,9 @@ pub trait Connector {
         headers: Option<HeaderMap>,
     ) -> eyre::Result<CommonResponse<E::Response>>
     where
+        Self: Sized,
         E: Endpoint,
-        E::Request: Serialize + GetFiles,
+        E::Request: Serialize + GetFiles + Sync,
         E::Response: for<'de> Deserialize<'de> + std::fmt::Debug,
     {
         let url = Self::query_url::<E>(token);
@@ -109,4 +111,11 @@ pub trait Connector {
             })?;
         Ok(response)
     }
+}
+
+#[derive(Debug, Default, Deserialize, Display, Copy, Clone)]
+pub enum ConnectorMode {
+    #[default]
+    Polling,
+    Webhook,
 }

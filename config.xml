@@ -1,3 +1,4 @@
 <config>
     <data_file_name> jab.data </data_file_name>
+    <mode> Polling </mode>
 </config>
