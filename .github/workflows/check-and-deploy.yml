@@ -72,6 +72,6 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
       - name: connect, pull, recompile and restart
-        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && git checkout -f ${{ secrets.MAIN_BRANCH }} && git pull && ${{ secrets.CARGO }} build --release && systemctl restart ${{ secrets.SERVICE_NAME }}"
+        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORK_DIR }} && git checkout -f ${{ github.ref_name }} && git pull && ${{ secrets.CARGO }} build --release && systemctl restart ${{ secrets.SERVICE_NAME }}"
       - name: cleanup
         run: rm -rf ~/.ssh
