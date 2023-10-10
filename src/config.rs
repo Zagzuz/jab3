@@ -1,18 +1,37 @@
+use compact_str::CompactString;
+use eyre::ensure;
 use serde::Deserialize;
 use std::path::Path;
 
-#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
-pub struct GlobalConfig {}
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+pub struct GlobalConfig {
+    #[serde(default)]
+    pub work_dir: CompactString,
+    pub data_file_name: CompactString,
+}
+
+impl Default for GlobalConfig {
+    fn default() -> Self {
+        Self {
+            work_dir: Default::default(),
+            data_file_name: "jab3.data".into(),
+        }
+    }
+}
 
 impl GlobalConfig {
-    fn _validate(&self) -> eyre::Result<()> {
-        todo!()
+    fn validate(&self) -> eyre::Result<()> {
+        ensure!(
+            !self.data_file_name.is_empty(),
+            "data file name cannot be empty"
+        );
+        Ok(())
     }
 
-    pub fn _from_file(path: impl AsRef<Path>) -> eyre::Result<Self> {
+    pub fn from_file(path: impl AsRef<Path>) -> eyre::Result<Self> {
         let contents = std::fs::read_to_string(path)?;
         let config = serde_xml_rs::from_str::<Self>(contents.as_str())?;
-        // config.validate()?;
+        config.validate()?;
         Ok(config)
     }
 }

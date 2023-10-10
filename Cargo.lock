@@ -473,13 +473,14 @@ dependencies = [
 
 [[package]]
 name = "compact_str"
-version = "0.7.1"
+version = "0.8.0-beta"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f86b9c4c00838774a6d902ef931eff7470720c51d90c2e32cfe15dc304737b3f"
+checksum = "c2a2dc81369dde6d31456eedbb4fd3d320f0b9713573dfe06e569e2bce7607f2"
 dependencies = [
  "castaway",
  "cfg-if 1.0.0",
  "itoa 1.0.6",
+ "rustversion",
  "ryu",
  "serde",
  "static_assertions",
@@ -1441,6 +1442,7 @@ dependencies = [
  "archivarius",
  "birthminder",
  "bot",
+ "compact_str",
  "dotenv",
  "eyre",
  "imager",

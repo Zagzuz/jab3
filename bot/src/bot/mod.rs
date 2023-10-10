@@ -17,7 +17,7 @@ use log::{debug, error, info, warn};
 use std::{
     collections::HashMap,
     io::{Read, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     str::FromStr,
     time::Duration,
 };
@@ -31,9 +31,10 @@ pub struct Bot {
     connector: Connector,
     communicator: Communicator,
     modules: HashMap<CompactString, BinPersistentModule>,
-    backup_path: PathBuf,
+    work_dir: PathBuf,
     state_rx: Receiver<State>,
     skip_missed_updates: bool,
+    data_file_name: CompactString,
 }
 
 #[derive(Debug)]
@@ -60,9 +61,10 @@ impl Bot {
             communicator: Communicator::new(token),
             last_update_id: 0,
             modules: Default::default(),
-            backup_path: config.backup_path,
+            work_dir: config.work_dir,
             state_rx,
             skip_missed_updates: config.skip_missed_updates,
+            data_file_name: config.data_file_name,
         }
     }
 
@@ -129,10 +131,9 @@ impl Bot {
     }
 
     fn load_data(&mut self) -> eyre::Result<()> {
-        let mut file = std::fs::File::options()
-            .read(true)
-            .open(self.backup_path.as_path())?;
-        let metadata = std::fs::metadata(self.backup_path.as_path())?;
+        let path = self.work_dir.join(Path::new(&self.data_file_name));
+        let mut file = std::fs::File::options().read(true).open(path.as_path())?;
+        let metadata = std::fs::metadata(path)?;
         let mut buffer = vec![0; metadata.len() as usize];
         file.read_exact(&mut buffer)?;
         self.deserialize(buffer)?;
@@ -141,10 +142,11 @@ impl Bot {
 
     fn save_data(&self) -> eyre::Result<()> {
         let data = self.serialize()?;
+        let path = self.work_dir.join(Path::new(&self.data_file_name));
         let mut file = std::fs::File::options()
             .write(true)
             .create(true)
-            .open(self.backup_path.as_path())?;
+            .open(path)?;
         file.write_all(data.as_slice())?;
         Ok(())
     }
@@ -153,7 +155,7 @@ impl Bot {
         self.load_data().unwrap_or_else(|err| {
             error!(
                 "failed to load bot data, path = {:?}, {}",
-                self.backup_path, err
+                self.work_dir, err
             )
         });
 

@@ -1,33 +1,3 @@
 <config>
-    <connector>
-        <allowed_updates>
-            <update type="message"/>
-            <update type="edited_message"/>
-            <update type="channel_post"/>
-        </allowed_updates>
-        <limit>100</limit>
-    </connector>
-    <commands>
-        <command>
-            <scope type="default"/>
-            <name>set_day</name>
-            <desc>dd.mm.yyyy format</desc>
-        </command>
-        <command>
-            <scope type="default"/>
-            <name>please</name>
-            <desc>ordered google image search</desc>
-        </command>
-        <command>
-            <scope type="default"/>
-            <name>pls</name>
-            <desc>randomised google image search</desc>
-        </command>
-    </commands>
-    <imager>
-        <limit>100</limit>
-    </imager>
-    <birthminder>
-        <timezone>Utc</timezone>
-    </birthminder>
+    <data_file_name> jab.data </data_file_name>
 </config>

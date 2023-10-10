@@ -1,4 +1,5 @@
 use api::proto::UpdateType;
+use compact_str::CompactString;
 use std::{collections::HashSet, path::PathBuf};
 
 #[derive(Debug)]
@@ -7,7 +8,8 @@ pub struct BotConfig {
     pub update_limit: Option<u32>,
     pub polling_timeout: Option<u32>,
     pub skip_missed_updates: bool,
-    pub backup_path: PathBuf,
+    pub work_dir: PathBuf,
+    pub data_file_name: CompactString,
 }
 
 impl Default for BotConfig {
@@ -17,7 +19,8 @@ impl Default for BotConfig {
             update_limit: None,
             polling_timeout: None,
             skip_missed_updates: false,
-            backup_path: "jab.data".into(),
+            work_dir: Default::default(),
+            data_file_name: "jab.data".into(),
         }
     }
 }

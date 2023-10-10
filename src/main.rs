@@ -1,10 +1,12 @@
 mod config;
 
+use crate::config::GlobalConfig;
 use archivarius::archivarius::Archivarius;
 use bot::bot::{config::BotConfig, Bot, State};
 use imager::imager::Imager;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
+use std::path::{Path, PathBuf};
 use tokio::{signal, sync::mpsc};
 
 #[tokio::main]
@@ -22,15 +24,17 @@ async fn main() {
         .init()
         .expect("logger failure");
 
-    // let config = GlobalConfig::from_file("config.xml").expect("failed to load config");
+    let work_dir = dotenv::var("WORK_DIR").unwrap();
+    let path = Path::new(work_dir.as_str()).join(Path::new("config.xml"));
+
+    let config = GlobalConfig::from_file(path.as_path()).expect("failed to load config");
 
     let (tx, rx) = mpsc::channel::<State>(1);
 
-    let backup_path = dotenv::var("DATA_PATH").unwrap();
-
     let bot_config = BotConfig {
         skip_missed_updates: false,
-        backup_path: backup_path.into(),
+        work_dir: PathBuf::from(config.work_dir.as_str()),
+        data_file_name: config.data_file_name,
         ..Default::default()
     };
     let mut bot = Bot::with_config(token.as_str(), rx, bot_config);
