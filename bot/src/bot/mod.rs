@@ -60,10 +60,13 @@ impl Bot {
                 Box::new(PollingConnector::with_config(token, connector_config))
             }
             ConnectorMode::Webhook => {
-                let ip_address = dotenv::var("IP_V4_ADDR").unwrap().to_compact_string();
                 let connector_config = WebhookConnectorConfig {
-                    https_url: Some(ip_address.clone()),
-                    ip_address: Some(ip_address),
+                    https_url: std::env::var("WEBHOOK_HTTPS_URL")
+                        .unwrap()
+                        .to_compact_string(),
+                    ip_address: std::env::var("WEBHOOK_IP_V4_ADDR")
+                        .map(|s| s.to_compact_string())
+                        .ok(),
                     drop_pending_updates: config.skip_missed_updates,
                     allowed_updates: config.allowed_updates.into_iter().collect(),
                     ..Default::default()

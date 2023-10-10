@@ -624,6 +624,7 @@ pub struct ForceReply {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct User {
     pub id: UserId,
+    #[serde(default)]
     pub is_bot: bool,
     pub first_name: CompactString,
     pub last_name: Option<CompactString>,
@@ -657,10 +658,11 @@ impl User {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ChatType {
     Sender,
+    #[default]
     Private,
     Group,
     Supergroup,
@@ -670,7 +672,7 @@ pub enum ChatType {
 #[derive(Debug, Deserialize)]
 pub struct Chat {
     pub id: ChatIntId,
-    #[serde(rename = "type")]
+    #[serde(default, rename = "type")]
     pub chat_type: ChatType,
     pub title: Option<CompactString>,
     pub username: Option<CompactString>,
@@ -1463,4 +1465,34 @@ pub enum ChatAction {
     FindLocation,
     RecordVideoNote,
     UploadVideoNote,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::proto::CommonUpdate;
+
+    #[test]
+    fn deserialize_common_update() {
+        let data = serde_json::json!({
+            "message": {
+                "chat": {
+                    "first_name": "Test",
+                    "id": 1111111,
+                    "last_name": "Test Lastname",
+                    "username": "Test"
+                },
+                "date": 1441645532,
+                "from": {
+                    "first_name": "Test",
+                    "id": 1111111,
+                    "last_name": "Test Lastname",
+                    "username": "Test"
+                },
+                "message_id": 1365,
+                "text": "/start"
+            },
+            "update_id": 10000
+        });
+        serde_json::from_value::<CommonUpdate>(data).unwrap();
+    }
 }

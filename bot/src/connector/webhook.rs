@@ -5,21 +5,31 @@ use api::{
     request::SetWebhookRequest,
 };
 use async_trait::async_trait;
+use axum::{
+    routing::{get, post},
+    Json, Router,
+};
+use axum_server::tls_rustls::RustlsConfig;
 use compact_str::CompactString;
-use eyre::eyre;
-use log::debug;
-use tokio::{io::AsyncReadExt, net::TcpListener};
+use eyre::bail;
+use http::StatusCode;
+use log::{debug, trace};
+use std::{
+    net::{Ipv4Addr, SocketAddr},
+    path::PathBuf,
+    str::FromStr,
+};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
 pub struct WebhookConnector {
-    token: CompactString,
-    listener: Option<TcpListener>,
-    buffer: Vec<u8>,
     config: WebhookConnectorConfig,
+    token: CompactString,
+    rx: Option<UnboundedReceiver<eyre::Result<CommonUpdate>>>,
 }
 
 #[derive(Default)]
 pub struct WebhookConnectorConfig {
-    pub https_url: Option<CompactString>,
+    pub https_url: CompactString,
     pub ip_address: Option<CompactString>,
     pub drop_pending_updates: bool,
     pub max_connections: Option<i32>,
@@ -30,9 +40,8 @@ impl WebhookConnector {
     pub(crate) fn with_config(token: &str, config: WebhookConnectorConfig) -> Self {
         Self {
             token: token.into(),
-            listener: None,
-            buffer: vec![],
             config,
+            rx: None,
         }
     }
 }
@@ -40,39 +49,86 @@ impl WebhookConnector {
 #[async_trait]
 impl Connector for WebhookConnector {
     async fn on_startup(&mut self) -> eyre::Result<()> {
-        let addr = match self.config.ip_address.as_ref() {
-            None => "127.0.0.1:443".into(),
-            Some(ip) => format!("{ip}:443"),
-        };
-        self.listener.replace(TcpListener::bind(&addr).await?);
-        debug!("jab is listening on {addr}...");
+        let addr = SocketAddr::new(
+            match self.config.ip_address.as_ref() {
+                None => Ipv4Addr::new(127, 0, 0, 1),
+                Some(ip) => Ipv4Addr::from_str(&ip)?,
+            }
+            .into(),
+            443,
+        );
+
         let request = SetWebhookRequest {
+            url: self.config.https_url.clone(),
             ip_address: self.config.ip_address.clone(),
-            url: self.config.https_url.clone().unwrap_or_default(),
             max_connections: self.config.max_connections,
             allowed_updates: Some(self.config.allowed_updates.clone()),
             drop_pending_updates: Some(self.config.drop_pending_updates),
             ..Default::default()
         };
-        <WebhookConnector as Connector>::send_request::<SetWebhook>(
+        let webhook_is_set = <WebhookConnector as Connector>::send_request::<SetWebhook>(
             self.token.as_str(),
             &request,
             None,
         )
         .await?
         .into_result()?;
+
+        if webhook_is_set {
+            debug!(
+                "webhook set, url: {}, ip: {:?}",
+                self.config.https_url, self.config.ip_address
+            );
+        } else {
+            bail!("failed to set webhook");
+        }
+
+        let (tx, rx) = unbounded_channel();
+
+        let app = Router::new()
+            .route(
+                "/",
+                post(move |Json(payload): Json<CommonUpdate>| async move {
+                    debug!("webhook update received: {:?}", payload);
+                    tx.send(Ok(payload)).expect("failed to send webhook update");
+                    StatusCode::OK
+                }),
+            )
+            .route(
+                "/health-check",
+                get(|| async {
+                    trace!("health check request received");
+                    StatusCode::OK
+                }),
+            );
+
+        self.rx.replace(rx);
+
+        let work_dir = std::env::var("WORK_DIR").expect("WORK_DIR not set");
+        let config = RustlsConfig::from_pem_file(
+            PathBuf::from(&work_dir)
+                .join("self_signed_certs")
+                .join("cert.pem"),
+            PathBuf::from(work_dir)
+                .join("self_signed_certs")
+                .join("key.pem"),
+        )
+        .await?;
+
+        let srv = axum_server::bind_rustls(addr, config).serve(app.into_make_service());
+
+        tokio::spawn(srv);
+
+        debug!("jab is listening on {addr:?}...");
+
         Ok(())
     }
 
     async fn fetch_updates(&mut self) -> eyre::Result<Vec<CommonUpdate>> {
-        let listener = self
-            .listener
-            .as_mut()
-            .ok_or(eyre!("webhook connector is not listening"))?;
-        let (mut stream, _addr) = listener.accept().await?;
-        stream.read_buf(&mut self.buffer).await?;
-        let update = serde_json::from_slice::<CommonUpdate>(self.buffer.as_slice())?;
-        self.buffer.clear();
+        let Some(rx) = self.rx.as_mut() else {
+            bail!("uninitialized connector")
+        };
+        let update = rx.recv().await.expect("update channel died")?;
         Ok(vec![update])
     }
 }
