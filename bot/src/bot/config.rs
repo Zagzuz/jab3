@@ -9,9 +9,9 @@ pub struct BotConfig {
     pub update_limit: Option<u32>,
     pub polling_timeout: Option<u32>,
     pub skip_missed_updates: bool,
-    pub connector_mode: ConnectorMode,
     pub work_dir: PathBuf,
     pub data_file_name: CompactString,
+    pub connector_mode: ConnectorMode,
 }
 
 impl Default for BotConfig {

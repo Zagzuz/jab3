@@ -34,8 +34,8 @@ async fn main() {
     let bot_config = BotConfig {
         skip_missed_updates: false,
         connector_mode: config.connector_mode,
-        work_dir: path,
         data_file_name: config.data_file_name,
+        work_dir: path,
         ..Default::default()
     };
     let mut bot = Bot::with_config(token.as_str(), rx, bot_config);
