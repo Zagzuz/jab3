@@ -49,10 +49,6 @@ pub enum State {
 type BinPersistentModule = Box<dyn PersistentModule<Input = Vec<u8>, Output = Vec<u8>>>;
 
 impl Bot {
-    pub fn new(token: &str, state_rx: Receiver<State>) -> Self {
-        Self::with_config(token, state_rx, Default::default())
-    }
-
     pub fn with_config(token: &str, state_rx: Receiver<State>, config: BotConfig) -> Self {
         let connector: Box<dyn Connector> = match config.connector_mode {
             ConnectorMode::Polling => {
@@ -60,7 +56,6 @@ impl Bot {
                     allowed_updates: config.allowed_updates.into_iter().collect(),
                     limit: config.update_limit,
                     timeout: config.polling_timeout,
-                    drop_pending_updates: config.skip_missed_updates,
                 };
                 Box::new(PollingConnector::with_config(token, connector_config))
             }

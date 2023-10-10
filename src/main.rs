@@ -6,7 +6,7 @@ use bot::bot::{config::BotConfig, Bot, State};
 use imager::imager::Imager;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tokio::{signal, sync::mpsc};
 
 #[tokio::main]
@@ -34,8 +34,11 @@ async fn main() {
     let bot_config = BotConfig {
         skip_missed_updates: false,
         connector_mode: config.connector_mode,
+        allowed_updates: Default::default(),
+        update_limit: None,
+        polling_timeout: None,
+        work_dir: PathBuf::from(config.work_dir.as_str()),
         data_file_name: config.data_file_name,
-        work_dir: path,
         ..Default::default()
     };
     let mut bot = Bot::with_config(token.as_str(), rx, bot_config);

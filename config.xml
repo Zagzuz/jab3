@@ -1,4 +1,4 @@
 <config>
     <data_file_name> jab.data </data_file_name>
-    <mode> Polling </mode>
+    <connector_mode> Polling </connector_mode>
 </config>

@@ -113,7 +113,7 @@ pub trait Connector {
     }
 }
 
-#[derive(Debug, Default, Deserialize, Display, Copy, Clone)]
+#[derive(Debug, Display, Deserialize, Default, Copy, Clone)]
 pub enum ConnectorMode {
     #[default]
     Polling,

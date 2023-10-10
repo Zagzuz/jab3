@@ -1,13 +1,11 @@
 use crate::connector::Connector;
 use api::{
-    endpoints::{DeleteWebhook, GetUpdates},
+    endpoints::GetUpdates,
     proto::{CommonUpdate, UpdateType},
-    request::{DeleteWebhookRequest, GetUpdatesRequest},
-    response::CommonResponse,
+    request::GetUpdatesRequest,
 };
 use async_trait::async_trait;
 use compact_str::{CompactString, ToCompactString};
-use log::{error, info};
 
 pub struct PollingConnector {
     token: CompactString,
@@ -20,7 +18,6 @@ pub struct PollingConnectorConfig {
     pub allowed_updates: Vec<UpdateType>,
     pub limit: Option<u32>,
     pub timeout: Option<u32>,
-    pub drop_pending_updates: bool,
 }
 
 impl PollingConnector {
@@ -36,23 +33,6 @@ impl PollingConnector {
 #[async_trait]
 impl Connector for PollingConnector {
     async fn on_startup(&mut self) -> eyre::Result<()> {
-        let request = DeleteWebhookRequest {
-            drop_pending_updates: Some(self.config.drop_pending_updates),
-        };
-        match <Self as Connector>::send_request::<DeleteWebhook>(
-            self.token.as_str(),
-            &request,
-            None,
-        )
-        .await?
-        {
-            CommonResponse::Ok(_) => {
-                info!("removed webhook");
-            }
-            CommonResponse::Err(err) => {
-                error!("{err}, ignored, moving on...");
-            }
-        };
         Ok(())
     }
 
