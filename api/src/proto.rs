@@ -1467,6 +1467,19 @@ pub enum ChatAction {
     UploadVideoNote,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct WebhookInfo {
+    pub url: CompactString,
+    pub has_custom_certificate: bool,
+    pub pending_update_count: u32,
+    pub ip_address: Option<CompactString>,
+    pub last_error_date: Option<u32>,
+    pub last_error_message: Option<CompactString>,
+    pub last_synchronization_error_date: Option<u32>,
+    pub max_connections: Option<u32>,
+    pub allowed_updates: Option<Vec<UpdateType>>,
+}
+
 #[cfg(test)]
 mod tests {
     use crate::proto::CommonUpdate;

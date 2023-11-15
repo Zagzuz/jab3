@@ -1,6 +1,6 @@
 use crate::connector::Connector;
 use api::{
-    endpoints::SetWebhook,
+    endpoints::{Empty, GetWebhookInfo, SetWebhook},
     proto::{CommonUpdate, InputFile, UpdateType},
     request::SetWebhookRequest,
 };
@@ -11,7 +11,7 @@ use axum::{
 };
 use axum_server::tls_rustls::RustlsConfig;
 use compact_str::{CompactString, ToCompactString};
-use eyre::{bail, eyre};
+use eyre::{bail, ensure, eyre};
 use http::StatusCode;
 use log::{debug, trace};
 use std::{
@@ -69,32 +69,6 @@ impl Connector for WebhookConnector {
                 .to_compact_string(),
         ));
 
-        let request = SetWebhookRequest {
-            url: self.config.https_url.clone(),
-            ip_address: self.config.ip_address.clone(),
-            certificate,
-            max_connections: self.config.max_connections,
-            allowed_updates: Some(self.config.allowed_updates.clone()),
-            drop_pending_updates: Some(self.config.drop_pending_updates),
-            ..Default::default()
-        };
-        let webhook_is_set = <WebhookConnector as Connector>::send_multipart::<SetWebhook>(
-            self.token.as_str(),
-            &request,
-            None,
-        )
-        .await?
-        .into_result()?;
-
-        if webhook_is_set {
-            debug!(
-                "webhook set, url: {}, ip: {:?}",
-                self.config.https_url, self.config.ip_address
-            );
-        } else {
-            bail!("failed to set webhook");
-        }
-
         let (tx, rx) = unbounded_channel();
 
         let app = Router::new()
@@ -129,6 +103,44 @@ impl Connector for WebhookConnector {
         tokio::spawn(srv);
 
         debug!("jab is listening on {addr:?}...");
+
+        let request = SetWebhookRequest {
+            url: self.config.https_url.clone(),
+            ip_address: self.config.ip_address.clone(),
+            certificate,
+            max_connections: self.config.max_connections,
+            allowed_updates: Some(self.config.allowed_updates.clone()),
+            drop_pending_updates: Some(self.config.drop_pending_updates),
+            ..Default::default()
+        };
+        let webhook_is_set = <WebhookConnector as Connector>::send_multipart::<SetWebhook>(
+            self.token.as_str(),
+            &request,
+            None,
+        )
+        .await?
+        .into_result()?;
+
+        ensure!(webhook_is_set, "webhook not set");
+
+        let info = <WebhookConnector as Connector>::send_request::<GetWebhookInfo>(
+            &self.token,
+            &Empty,
+            None,
+        )
+        .await?
+        .into_result()?;
+        debug!("webhook info: {info:?}");
+
+        ensure!(
+            info.has_custom_certificate,
+            "webhook set without certificate"
+        );
+        ensure!(info.url == self.config.https_url, "wrong webhook https url");
+        ensure!(
+            info.ip_address == self.config.ip_address,
+            "wrong webhook ip address"
+        );
 
         Ok(())
     }

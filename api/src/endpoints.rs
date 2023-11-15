@@ -1,8 +1,9 @@
 use http::Method;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     params::ToParams,
-    proto::{CommonUpdate, Message},
+    proto::{CommonUpdate, Message, WebhookInfo},
     request::{
         CopyMessageRequest, DeleteMessageRequest, DeleteWebhookRequest, ForwardMessageRequest,
         GetUpdatesRequest, SendAnimationRequest, SendChatActionRequest, SendMessageRequest,
@@ -18,6 +19,9 @@ pub trait Endpoint {
     const METHOD: Method;
     const PATH: &'static str;
 }
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+pub struct Empty;
 
 pub struct SendMessage;
 impl Endpoint for SendMessage {
@@ -113,4 +117,13 @@ impl Endpoint for SendAnimation {
 
     const METHOD: Method = Method::POST;
     const PATH: &'static str = "sendAnimation";
+}
+
+pub struct GetWebhookInfo;
+
+impl Endpoint for GetWebhookInfo {
+    type Request = Empty;
+    type Response = WebhookInfo;
+    const METHOD: Method = Method::POST;
+    const PATH: &'static str = "getWebhookInfo";
 }
