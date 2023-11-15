@@ -314,10 +314,14 @@ impl Persistence for Bot {
 }
 
 fn message_to_string(msg: &Message) -> String {
-    let mut s = format!(
-        "message from {:?}, '{:?}' {:?} chat",
-        msg.from, msg.chat.title, msg.chat.chat_type
-    );
+    let mut s = String::from("received message");
+    if let Some(user) = msg.from.as_ref() {
+        s += &format!(
+            " from {} {:?} ({:?})",
+            user.first_name, user.last_name, user.username
+        )
+    }
+    s += &format!(", '{:?}' {:?} chat", msg.chat.title, msg.chat.chat_type);
     if let Some(text) = msg.text.as_ref() {
         s += &format!(", text: {}", text);
     }
