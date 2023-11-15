@@ -10,7 +10,9 @@ use serde::{Deserialize, Serialize};
 
 use api::{
     endpoints::{Endpoint, GetUpdates},
-    proto::{CommonUpdate, UpdateType},
+    files::GetFiles,
+    params::ToParams,
+    proto::{CommonUpdate, InputFileResult, UpdateType},
     request::GetUpdatesRequest,
     response::CommonResponse,
 };
@@ -70,6 +72,53 @@ impl Connector {
             .request(E::METHOD, url)
             .headers(headers.unwrap_or_default())
             .json(data)
+            .build()?;
+        let text = client.execute(request).await?.text().await?;
+        let response =
+            serde_json::from_str::<CommonResponse<E::Response>>(&text).map_err(|err| {
+                eyre!(
+                    "{}, type = {:?}, response = {}",
+                    err,
+                    std::any::type_name::<CommonResponse<E::Response>>(),
+                    text
+                )
+            })?;
+        Ok(response)
+    }
+
+    pub(crate) async fn send_multipart<E>(
+        token: &str,
+        data: &E::Request,
+        headers: Option<HeaderMap>,
+    ) -> eyre::Result<CommonResponse<E::Response>>
+    where
+        E: Endpoint,
+        E::Request: Serialize + GetFiles,
+        E::Response: for<'de> Deserialize<'de> + std::fmt::Debug,
+    {
+        let url = Self::query_url::<E>(token);
+
+        let mut form = reqwest::multipart::Form::new();
+        for (field_name, field_value) in data.to_params()? {
+            form = form.part(
+                field_name,
+                reqwest::multipart::Part::text(field_value.to_string()),
+            );
+        }
+        for (file_name, file) in data.get_files() {
+            form = match file.data().await? {
+                InputFileResult::Text(text) => {
+                    form.part(file_name, reqwest::multipart::Part::text(text))
+                }
+                InputFileResult::Part(part) => form.part(file_name, part),
+            };
+        }
+
+        let client = reqwest::Client::new();
+        let request = client
+            .request(E::METHOD, url)
+            .headers(headers.unwrap_or_default())
+            .multipart(form)
             .build()?;
         let text = client.execute(request).await?.text().await?;
         let response =
