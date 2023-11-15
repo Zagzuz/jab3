@@ -9,7 +9,6 @@ pub struct GlobalConfig {
     #[serde(default)]
     pub connector_mode: ConnectorMode,
     pub data_file_name: CompactString,
-    pub work_dir: CompactString,
     #[serde(default)]
     pub skip_missed_updates: bool,
 }
@@ -18,7 +17,6 @@ impl Default for GlobalConfig {
     fn default() -> Self {
         Self {
             connector_mode: Default::default(),
-            work_dir: Default::default(),
             data_file_name: "jab3.data".into(),
             skip_missed_updates: false,
         }
