@@ -221,7 +221,21 @@ impl Bot {
                 if self.check_is_old_update(update.id) {
                     continue;
                 }
-                debug!("update received: {update:?}");
+                match &update.data {
+                    Update::MessageUpdate(msg)
+                    | Update::EditedMessageUpdate(msg)
+                    | Update::ChannelPostUpdate(msg)
+                    | Update::EditedChannelPostUpdate(msg) => {
+                        debug!(
+                            "update #{} message received: {}",
+                            update.id,
+                            message_to_string(msg)
+                        );
+                    }
+                    _ => {
+                        debug!("update received: {update:?}");
+                    }
+                }
                 match update.data {
                     Update::MessageUpdate(message) => {
                         if let Err(report) = self.handle_message_update(message).await {
@@ -297,4 +311,42 @@ impl Persistence for Bot {
 
         Ok(())
     }
+}
+
+fn message_to_string(msg: &Message) -> String {
+    let mut s = format!(
+        "message from {:?}, '{:?}' {:?} chat",
+        msg.from, msg.chat.title, msg.chat.chat_type
+    );
+    if let Some(text) = msg.text.as_ref() {
+        s += &format!(", text: {}", text);
+    }
+    if let Some(animation) = msg.animation.as_ref() {
+        s += &format!(", animation: {:?}", animation.file_name);
+    }
+    if let Some(audio) = msg.audio.as_ref() {
+        s += &format!(", audio: {:?}", audio.title);
+    }
+    if let Some(document) = msg.document.as_ref() {
+        s += &format!(", document: {:?}", document.file_name);
+    }
+    if let Some(photos) = msg.photo.as_ref() {
+        s += &format!(", {} photos", photos.len());
+    }
+    if let Some(sticker) = msg.sticker.as_ref() {
+        s += &format!(", sticker: {:?}", sticker.emoji);
+    }
+    if let Some(video) = msg.video.as_ref() {
+        s += &format!(", video: {:?}", video.file_name);
+    }
+    if msg.video_note.is_some() {
+        s += ", a video note";
+    }
+    if msg.voice.is_some() {
+        s += &", a voice msg";
+    }
+    if let Some(caption) = msg.caption.as_ref() {
+        s += &format!(", with caption: '{:?}'", caption);
+    }
+    s
 }
