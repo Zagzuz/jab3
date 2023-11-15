@@ -33,6 +33,18 @@ pub struct GetUpdatesRequest {
 
 #[skip_serializing_none]
 #[derive(Debug, Default, Serialize)]
+pub struct SetWebhookRequest {
+    pub url: CompactString,
+    pub certificate: Option<CompactString>,
+    pub ip_address: Option<CompactString>,
+    pub max_connections: Option<i32>,
+    pub allowed_updates: Option<Vec<UpdateType>>,
+    pub drop_pending_updates: Option<bool>,
+    pub secret_token: Option<CompactString>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Default, Serialize)]
 pub struct DeleteWebhookRequest {
     drop_pending_updates: Option<bool>,
 }

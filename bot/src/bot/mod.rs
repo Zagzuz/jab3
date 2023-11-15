@@ -1,7 +1,10 @@
 use crate::{
     bot::{command::BotCommandInfo, config::BotConfig},
     communicator::{Communicate, Communicator},
-    connector::{Connector, UpdateRequestConfig},
+    connector::{
+        webhook::{WebhookConnector, WebhookConnectorConfig},
+        Connector,
+    },
     module::PersistentModule,
     persistence::Persistence,
 };
@@ -10,7 +13,7 @@ use api::{
     proto::{Message, Update},
 };
 use bincode::{Decode, Encode};
-use compact_str::CompactString;
+use compact_str::{CompactString, ToCompactString};
 use eyre::bail;
 use futures_util::future::try_join_all;
 use log::{debug, error, info, warn};
@@ -28,7 +31,7 @@ pub mod config;
 
 pub struct Bot {
     last_update_id: UpdateId,
-    connector: Connector,
+    connector: Box<dyn Connector>,
     communicator: Communicator,
     modules: HashMap<CompactString, BinPersistentModule>,
     work_dir: PathBuf,
@@ -50,14 +53,28 @@ impl Bot {
     }
 
     pub fn with_config(token: &str, state_rx: Receiver<State>, config: BotConfig) -> Self {
-        let update_request_config = UpdateRequestConfig {
-            allowed_updates: config.allowed_updates,
-            limit: config.update_limit,
-            timeout: config.polling_timeout,
+        /*let connector_config = PollingConnectorConfig {
+                    allowed_updates: config.allowed_updates.into_iter().collect(),
+                    limit: config.update_limit,
+                    timeout: config.polling_timeout,
+                };
+
+                let connector = PollingConnector::with_config(token, connector_config);
+        */
+
+        let ip_address = dotenv::var("IP_V4_ADDR").unwrap().to_compact_string();
+        let connector_config = WebhookConnectorConfig {
+            https_url: Some(ip_address.clone()),
+            ip_address: Some(ip_address),
+            drop_pending_updates: config.skip_missed_updates,
+            allowed_updates: config.allowed_updates.into_iter().collect(),
+            ..Default::default()
         };
 
+        let connector = WebhookConnector::with_config(token, connector_config);
+
         Self {
-            connector: Connector::with_config(token, update_request_config),
+            connector: Box::new(connector),
             communicator: Communicator::new(token),
             last_update_id: 0,
             modules: Default::default(),
@@ -159,6 +176,11 @@ impl Bot {
             )
         });
 
+        self.connector
+            .on_startup()
+            .await
+            .expect("connector failed on startup");
+
         let mut interval = tokio::time::interval(Duration::from_millis(1000));
 
         loop {
@@ -176,7 +198,7 @@ impl Bot {
                 _ => {}
             };
 
-            let updates = match self.connector.recv().await {
+            let updates = match self.connector.fetch_updates().await {
                 Ok(updates) => updates,
                 Err(err) => {
                     error!("{err}");

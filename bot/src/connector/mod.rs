@@ -1,67 +1,46 @@
 pub(crate) mod config;
+pub(crate) mod polling;
+pub(crate) mod webhook;
 
-use std::collections::HashSet;
+use async_trait::async_trait;
 
-use compact_str::{CompactString, ToCompactString};
 use eyre::eyre;
 use http::HeaderMap;
 
 use serde::{Deserialize, Serialize};
 
 use api::{
-    endpoints::{Endpoint, GetUpdates},
-    proto::{CommonUpdate, UpdateType},
-    request::GetUpdatesRequest,
+    endpoints::Endpoint,
+    files::GetFiles,
+    params::ToParams,
+    proto::{CommonUpdate, InputFileResult},
     response::CommonResponse,
 };
 
 const BASE_URL: &str = "https://api.telegram.org";
 
-pub struct Connector {
-    token: CompactString,
-    last_update_id: Option<usize>,
-    update_request_config: UpdateRequestConfig,
-}
+#[async_trait]
+pub trait Connector {
+    async fn on_startup(&mut self) -> eyre::Result<()>;
 
-#[derive(Default, Debug)]
-pub struct UpdateRequestConfig {
-    pub allowed_updates: HashSet<UpdateType>,
-    pub limit: Option<u32>,
-    pub timeout: Option<u32>,
-}
+    async fn fetch_updates(&mut self) -> eyre::Result<Vec<CommonUpdate>>;
 
-impl UpdateRequestConfig {
-    pub fn make_request(&self, offset: Option<usize>) -> GetUpdatesRequest {
-        GetUpdatesRequest {
-            offset,
-            limit: self.limit,
-            timeout: self.timeout,
-            allowed_updates: Some(self.allowed_updates.clone().into_iter().collect()),
-        }
-    }
-}
-
-impl Connector {
-    pub fn with_config(token: &str, update_request_config: UpdateRequestConfig) -> Self {
-        Self {
-            token: token.to_compact_string(),
-            last_update_id: None,
-            update_request_config,
-        }
-    }
-
-    fn query_url<E: Endpoint>(token: &str) -> String {
+    fn query_url<E: Endpoint>(token: &str) -> String
+    where
+        Self: Sized,
+    {
         format!("{}/bot{}/{}", BASE_URL, token, E::PATH)
     }
 
-    pub(crate) async fn send_request<E>(
+    async fn send_request<E>(
         token: &str,
         data: &E::Request,
         headers: Option<HeaderMap>,
     ) -> eyre::Result<CommonResponse<E::Response>>
     where
+        Self: Sized,
         E: Endpoint,
-        E::Request: Serialize,
+        E::Request: Serialize + Sync,
         E::Response: for<'de> Deserialize<'de> + std::fmt::Debug,
     {
         let url = Self::query_url::<E>(token);
@@ -84,18 +63,50 @@ impl Connector {
         Ok(response)
     }
 
-    pub async fn recv(&mut self) -> eyre::Result<Vec<CommonUpdate>> {
-        let request = self.update_request_config.make_request(self.last_update_id);
+    async fn send_multipart<E>(
+        token: &str,
+        data: &E::Request,
+        headers: Option<HeaderMap>,
+    ) -> eyre::Result<CommonResponse<E::Response>>
+    where
+        E: Endpoint,
+        E::Request: Serialize + GetFiles,
+        E::Response: for<'de> Deserialize<'de> + std::fmt::Debug,
+    {
+        let url = Self::query_url::<E>(token);
 
-        let updates = Self::send_request::<GetUpdates>(&self.token, &request, None)
-            .await?
-            .into_result()?;
+        let mut form = reqwest::multipart::Form::new();
+        for (field_name, field_value) in data.to_params()? {
+            form = form.part(
+                field_name,
+                reqwest::multipart::Part::text(field_value.to_string()),
+            );
+        }
+        for (file_name, file) in data.get_files() {
+            form = match file.data().await? {
+                InputFileResult::Text(text) => {
+                    form.part(file_name, reqwest::multipart::Part::text(text))
+                }
+                InputFileResult::Part(part) => form.part(file_name, part),
+            };
+        }
 
-        if !updates.is_empty() {
-            let last_update_id = updates.iter().map(|u| u.id).max().unwrap();
-            self.last_update_id.replace(last_update_id as usize);
-        };
-
-        Ok(updates)
+        let client = reqwest::Client::new();
+        let request = client
+            .request(E::METHOD, url)
+            .headers(headers.unwrap_or_default())
+            .multipart(form)
+            .build()?;
+        let text = client.execute(request).await?.text().await?;
+        let response =
+            serde_json::from_str::<CommonResponse<E::Response>>(&text).map_err(|err| {
+                eyre!(
+                    "{}, type = {:?}, response = {}",
+                    err,
+                    std::any::type_name::<CommonResponse<E::Response>>(),
+                    text
+                )
+            })?;
+        Ok(response)
     }
 }

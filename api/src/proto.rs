@@ -59,7 +59,7 @@ impl InputFile {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum UpdateType {
     Message,
