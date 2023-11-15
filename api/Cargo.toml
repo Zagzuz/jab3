@@ -9,8 +9,11 @@ edition = "2021"
 eyre = "0.6.8"
 derivative = "2.2.0"
 derive_more = "0.99.17"
+reqwest = { version = "0.11.22", features = ["stream"] }
 serde_with = "2.2.0"
 serde = "1.0.152"
+tokio = { version = "1.34.0", features = ["fs"] }
+tokio-util = "0.7.10"
 http = "0.2.9"
 compact_str = { version = "0.8.0-beta", features = ["serde"] }
 serde_json = "1.0.94"

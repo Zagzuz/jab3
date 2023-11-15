@@ -9,6 +9,56 @@ use crate::basic_types::{ChatIntId, MessageId, Timestamp, UpdateId, UserId};
 // fixme: Date the change was done in Unix time
 pub type Date = u64;
 
+/// This object represents the contents of a file to be uploaded. Must be posted using multipart/form-data in the usual way that files are uploaded via the browser.
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum InputFile {
+    /// FileID is an ID of a file already uploaded to Telegram.
+    FileID(CompactString),
+    /// FileURL is a URL to use as a file for a request.
+    FileURL(CompactString),
+    /// fileAttach is an internal file type used for processed media groups.
+    FileAttach(CompactString),
+    /// FileBytes contains information about a set of bytes to upload as a File.
+    FileBytes(CompactString, Vec<u8>),
+    /// FilePath is a path to a local file.
+    FilePath(CompactString),
+}
+/// On success,returns a InputFileResult object data method
+
+pub enum InputFileResult {
+    /// don't need upload
+    Text(CompactString),
+    /// must upload using multipart/form-data
+    Part(reqwest::multipart::Part),
+}
+
+impl InputFile {
+    pub fn need_upload(&self) -> bool {
+        matches!(self, InputFile::FileBytes(_, _) | InputFile::FilePath(_))
+    }
+
+    pub async fn data(&self) -> eyre::Result<InputFileResult> {
+        match self {
+            InputFile::FileID(id) => Ok(InputFileResult::Text(id.clone())),
+            InputFile::FileURL(url) => Ok(InputFileResult::Text(url.clone())),
+            InputFile::FileAttach(attach) => Ok(InputFileResult::Text(attach.clone())),
+            InputFile::FileBytes(file_name, bytes) => Ok(InputFileResult::Part(
+                reqwest::multipart::Part::bytes(bytes.clone()).file_name(file_name.to_string()),
+            )),
+            InputFile::FilePath(path) => Ok(InputFileResult::Part(
+                reqwest::multipart::Part::stream(reqwest::Body::wrap_stream(
+                    tokio_util::codec::FramedRead::new(
+                        tokio::fs::File::open(path.as_str()).await?,
+                        tokio_util::codec::BytesCodec::new(),
+                    ),
+                ))
+                .file_name(path.to_string()),
+            )),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum UpdateType {
