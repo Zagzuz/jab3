@@ -6,7 +6,7 @@ use bot::bot::{config::BotConfig, Bot, State};
 use imager::imager::Imager;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tokio::{signal, sync::mpsc};
 
 #[tokio::main]
@@ -33,7 +33,11 @@ async fn main() {
 
     let bot_config = BotConfig {
         skip_missed_updates: false,
-        work_dir: PathBuf::from(config.work_dir.as_str()),
+        connector_mode: config.connector_mode,
+        allowed_updates: Default::default(),
+        update_limit: None,
+        polling_timeout: None,
+        work_dir: path,
         data_file_name: config.data_file_name,
         ..Default::default()
     };
@@ -51,7 +55,7 @@ async fn main() {
                     .expect("failed to send shutdown signal");
             }
             Err(err) => {
-                panic!("unable to listen for shutdown signal: {err}");
+                panic!("unable to listen for shutdown signal: {}", err);
             }
         };
     });

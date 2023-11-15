@@ -6,7 +6,7 @@ use crate::{
     request::{
         CopyMessageRequest, DeleteMessageRequest, DeleteWebhookRequest, ForwardMessageRequest,
         GetUpdatesRequest, SendAnimationRequest, SendChatActionRequest, SendMessageRequest,
-        SendPhotoRequest,
+        SendPhotoRequest, SetWebhookRequest,
     },
     response::MessageIdResponse,
 };
@@ -35,6 +35,15 @@ impl Endpoint for GetUpdates {
 
     const METHOD: Method = Method::GET;
     const PATH: &'static str = "getUpdates";
+}
+
+pub struct SetWebhook;
+impl Endpoint for SetWebhook {
+    type Request = SetWebhookRequest;
+    type Response = bool;
+
+    const METHOD: Method = Method::GET;
+    const PATH: &'static str = "setWebhook";
 }
 
 pub struct DeleteWebhook;
