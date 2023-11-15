@@ -1,6 +1,7 @@
 use http::Method;
 
 use crate::{
+    params::ToParams,
     proto::{CommonUpdate, Message},
     request::{
         CopyMessageRequest, DeleteMessageRequest, DeleteWebhookRequest, ForwardMessageRequest,
@@ -11,7 +12,7 @@ use crate::{
 };
 
 pub trait Endpoint {
-    type Request;
+    type Request: ToParams;
     type Response;
 
     const METHOD: Method;
