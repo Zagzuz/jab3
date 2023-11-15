@@ -4,6 +4,7 @@ use std::collections::HashSet;
 
 use compact_str::{CompactString, ToCompactString};
 use eyre::eyre;
+use http::HeaderMap;
 
 use serde::{Deserialize, Serialize};
 
@@ -56,6 +57,7 @@ impl Connector {
     pub(crate) async fn send_request<E>(
         token: &str,
         data: &E::Request,
+        headers: Option<HeaderMap>,
     ) -> eyre::Result<CommonResponse<E::Response>>
     where
         E: Endpoint,
@@ -64,7 +66,11 @@ impl Connector {
     {
         let url = Self::query_url::<E>(token);
         let client = reqwest::Client::new();
-        let request = client.request(E::METHOD, url).json(data).build()?;
+        let request = client
+            .request(E::METHOD, url)
+            .headers(headers.unwrap_or_default())
+            .json(data)
+            .build()?;
         let text = client.execute(request).await?.text().await?;
         let response =
             serde_json::from_str::<CommonResponse<E::Response>>(&text).map_err(|err| {
@@ -81,7 +87,7 @@ impl Connector {
     pub async fn recv(&mut self) -> eyre::Result<Vec<CommonUpdate>> {
         let request = self.update_request_config.make_request(self.last_update_id);
 
-        let updates = Self::send_request::<GetUpdates>(&self.token, &request)
+        let updates = Self::send_request::<GetUpdates>(&self.token, &request, None)
             .await?
             .into_result()?;
 
