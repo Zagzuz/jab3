@@ -1,10 +1,15 @@
-use crate::basic_types::{MessageId, MessageThreadId};
+use crate::{
+    basic_types::{MessageId, MessageThreadId},
+    files::{Files, GetFiles},
+};
 use compact_str::CompactString;
 use derivative::Derivative;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::proto::{ChatAction, ChatId, MessageEntity, ParseMode, ReplyMarkup, UpdateType};
+use crate::proto::{
+    ChatAction, ChatId, InputFile, MessageEntity, ParseMode, ReplyMarkup, UpdateType,
+};
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize)]
@@ -35,12 +40,23 @@ pub struct GetUpdatesRequest {
 #[derive(Debug, Default, Serialize)]
 pub struct SetWebhookRequest {
     pub url: CompactString,
-    pub certificate: Option<CompactString>,
+    pub certificate: Option<InputFile>,
     pub ip_address: Option<CompactString>,
     pub max_connections: Option<i32>,
     pub allowed_updates: Option<Vec<UpdateType>>,
     pub drop_pending_updates: Option<bool>,
     pub secret_token: Option<CompactString>,
+}
+
+impl GetFiles for SetWebhookRequest {
+    fn get_files(&self) -> Files {
+        match self.certificate.as_ref() {
+            Some(certificate) => {
+                Files::from([(CompactString::from("certificate"), certificate.clone())])
+            }
+            None => Files::new(),
+        }
+    }
 }
 
 #[skip_serializing_none]

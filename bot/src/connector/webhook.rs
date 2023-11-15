@@ -1,7 +1,7 @@
 use crate::connector::Connector;
 use api::{
     endpoints::SetWebhook,
-    proto::{CommonUpdate, UpdateType},
+    proto::{CommonUpdate, InputFile, UpdateType},
     request::SetWebhookRequest,
 };
 use async_trait::async_trait;
@@ -10,8 +10,8 @@ use axum::{
     Json, Router,
 };
 use axum_server::tls_rustls::RustlsConfig;
-use compact_str::CompactString;
-use eyre::bail;
+use compact_str::{CompactString, ToCompactString};
+use eyre::{bail, eyre};
 use http::StatusCode;
 use log::{debug, trace};
 use std::{
@@ -58,15 +58,27 @@ impl Connector for WebhookConnector {
             443,
         );
 
+        let work_dir = std::env::var("WORK_DIR").expect("WORK_DIR not set");
+        let cert_path = PathBuf::from(&work_dir)
+            .join("self_signed_certs")
+            .join("cert.pem");
+        let certificate = Some(InputFile::FilePath(
+            cert_path
+                .to_str()
+                .ok_or(eyre!("failed to get cert path"))?
+                .to_compact_string(),
+        ));
+
         let request = SetWebhookRequest {
             url: self.config.https_url.clone(),
             ip_address: self.config.ip_address.clone(),
+            certificate,
             max_connections: self.config.max_connections,
             allowed_updates: Some(self.config.allowed_updates.clone()),
             drop_pending_updates: Some(self.config.drop_pending_updates),
             ..Default::default()
         };
-        let webhook_is_set = <WebhookConnector as Connector>::send_request::<SetWebhook>(
+        let webhook_is_set = <WebhookConnector as Connector>::send_multipart::<SetWebhook>(
             self.token.as_str(),
             &request,
             None,
@@ -104,11 +116,8 @@ impl Connector for WebhookConnector {
 
         self.rx.replace(rx);
 
-        let work_dir = std::env::var("WORK_DIR").expect("WORK_DIR not set");
         let config = RustlsConfig::from_pem_file(
-            PathBuf::from(&work_dir)
-                .join("self_signed_certs")
-                .join("cert.pem"),
+            cert_path,
             PathBuf::from(work_dir)
                 .join("self_signed_certs")
                 .join("key.pem"),
