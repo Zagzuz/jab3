@@ -143,7 +143,7 @@ impl Communicate for Communicator {
             protect_content: None,
             reply_markup: None,
         };
-        Ok(Connector::send_request::<SendMessage>(&self.token, &request, None).await?)
+        Ok(Connector::send_request::<SendMessage>(&self.token, &request).await?)
     }
 
     async fn reply_message(
@@ -166,7 +166,7 @@ impl Communicate for Communicator {
             protect_content: None,
             reply_markup: None,
         };
-        Connector::send_request::<SendMessage>(&self.token, &request, None).await
+        Connector::send_request::<SendMessage>(&self.token, &request).await
     }
 
     async fn send_photo_url(
@@ -181,7 +181,7 @@ impl Communicate for Communicator {
             reply_to_message_id,
             ..Default::default()
         };
-        Connector::send_request::<SendPhoto>(&self.token, &request, None).await
+        Connector::send_request::<SendPhoto>(&self.token, &request).await
     }
 
     async fn send_animation_url(
@@ -196,7 +196,7 @@ impl Communicate for Communicator {
             reply_to_message_id,
             ..Default::default()
         };
-        Connector::send_request::<SendAnimation>(&self.token, &request, None).await
+        Connector::send_request::<SendAnimation>(&self.token, &request).await
     }
 
     async fn forward_message(
@@ -215,7 +215,7 @@ impl Communicate for Communicator {
             protect_content,
             message_id,
         };
-        Connector::send_request::<ForwardMessage>(&self.token, &request, None).await
+        Connector::send_request::<ForwardMessage>(&self.token, &request).await
     }
 
     async fn copy_message(
@@ -247,7 +247,7 @@ impl Communicate for Communicator {
             allow_sending_without_reply,
             reply_markup,
         };
-        Connector::send_request::<CopyMessage>(&self.token, &request, None).await
+        Connector::send_request::<CopyMessage>(&self.token, &request).await
     }
 
     async fn send_chat_action(
@@ -261,7 +261,7 @@ impl Communicate for Communicator {
             message_thread_id,
             action,
         };
-        Connector::send_request::<SendChatAction>(&self.token, &request, None).await
+        Connector::send_request::<SendChatAction>(&self.token, &request).await
     }
 
     async fn delete_message(
@@ -273,6 +273,6 @@ impl Communicate for Communicator {
             chat_id,
             message_id,
         };
-        Connector::send_request::<DeleteMessage>(&self.token, &request, None).await
+        Connector::send_request::<DeleteMessage>(&self.token, &request).await
     }
 }
