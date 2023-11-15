@@ -1,4 +1,6 @@
 /target
+/self_signed_certs
+config.xml
 .idea
 .env
 *.iml
