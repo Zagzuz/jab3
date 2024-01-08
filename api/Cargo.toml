@@ -18,3 +18,7 @@ http = "0.2.9"
 compact_str = { version = "0.8.0-beta", features = ["serde"] }
 serde_json = "1.0.94"
 serde-aux = "4.1.2"
+chrono = "0.4.30"
+
+[dev-dependencies]
+assert2 = "0.3.11"

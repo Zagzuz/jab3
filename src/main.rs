@@ -3,6 +3,7 @@ mod config;
 use crate::config::GlobalConfig;
 use archivarius::archivarius::Archivarius;
 use bot::bot::{config::BotConfig, Bot, State};
+use gigachat::GigaChat;
 use imager::imager::Imager;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
@@ -21,6 +22,7 @@ async fn main() {
         .with_module_level("imager", LevelFilter::Debug)
         .with_module_level("birthminder", LevelFilter::Debug)
         .with_module_level("archivarius", LevelFilter::Debug)
+        .with_module_level("gigachat", LevelFilter::Debug)
         .init()
         .expect("logger failure");
 
@@ -45,6 +47,7 @@ async fn main() {
 
     bot.add_module("imager", Imager::new());
     bot.add_module("archivarius", Archivarius::new());
+    bot.add_module("gigachat", GigaChat::new());
     // bot.add_module("birthminder", Birthminder::new());
 
     tokio::join!(bot.start(), async {

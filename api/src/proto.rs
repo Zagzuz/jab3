@@ -4,7 +4,10 @@ use serde_aux::field_attributes::deserialize_number_from_string;
 use serde_json::Map;
 use serde_with::skip_serializing_none;
 
-use crate::basic_types::{ChatIntId, MessageId, Timestamp, UpdateId, UserId};
+use crate::{
+    basic_types::{ChatIntId, MessageId, UpdateId, UserId},
+    timestamp::Timestamp,
+};
 
 // fixme: Date the change was done in Unix time
 pub type Date = u64;

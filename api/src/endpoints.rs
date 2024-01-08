@@ -1,3 +1,4 @@
+pub use http;
 use http::Method;
 use serde::{Deserialize, Serialize};
 

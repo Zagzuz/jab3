@@ -1,4 +1,5 @@
 use compact_str::CompactString;
+pub use eyre;
 use serde::Serialize;
 use std::collections::HashMap;
 
