@@ -7,6 +7,7 @@ use std::{
     fmt::{Display, Formatter},
 };
 
+#[must_use]
 #[derive(Debug)]
 pub enum CommonResponse<R> {
     Ok(R),
