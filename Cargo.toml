@@ -12,6 +12,7 @@ api = { path = "api" }
 bot = { path = "bot" }
 archivarius = { path = "modules/archivarius" }
 birthminder = { path = "modules/birthminder" }
+eden = { path = "modules/eden" }
 gigachat = { path = "modules/gigachat" }
 imager = { path = "modules/imager" }
 
