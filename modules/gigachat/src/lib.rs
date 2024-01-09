@@ -162,7 +162,8 @@ impl Module for GigaChat {
 
                 ensure!(!response.choices.is_empty(), "no answer for {cmd:?}");
                 comm.send_chat_action(message.chat.id.into(), None, ChatAction::Typing)
-                    .await?;
+                    .await?
+                    .into_result()?;
 
                 let answer = response
                     .choices
@@ -184,7 +185,8 @@ impl Module for GigaChat {
                         message.message_id,
                         None,
                     )
-                    .await?;
+                    .await?
+                    .into_result()?;
                     return Ok(());
                 } else if answer.contains("```") {
                     Some(ParseMode::MarkdownV2)
@@ -198,7 +200,8 @@ impl Module for GigaChat {
                     message.message_id,
                     parse_mode,
                 )
-                .await?;
+                .await?
+                .into_result()?;
 
                 let mut messages = response
                     .choices
@@ -215,7 +218,8 @@ impl Module for GigaChat {
                     message.message_id,
                     None,
                 )
-                .await?;
+                .await?
+                .into_result()?;
             }
             Err(err) => {
                 debug!("{err}");

@@ -216,7 +216,8 @@ impl Archivarius {
                 message.message_id,
                 None,
             )
-            .await?;
+            .await?
+            .into_result()?;
             return Ok(true);
         }
         Ok(false)
@@ -230,7 +231,8 @@ impl Archivarius {
                 message.message_id,
                 None,
             )
-            .await?;
+            .await?
+            .into_result()?;
             return Ok(());
         };
 
@@ -259,7 +261,8 @@ impl Archivarius {
             message.message_id,
             Some(ParseMode::MarkdownV2),
         )
-        .await?;
+        .await?
+        .into_result()?;
 
         Ok(())
     }
@@ -320,7 +323,8 @@ impl Module for Archivarius {
             CommandName::Save => {
                 self.save_message(message)?;
                 comm.reply_message("Saved!", message.chat.id.into(), message.message_id, None)
-                    .await?;
+                    .await?
+                    .into_result()?;
             }
             CommandName::Guess => {
                 self.guess(comm, message).await?;
@@ -334,7 +338,8 @@ impl Module for Archivarius {
                     messages.remove(&message.into());
                 }
                 comm.reply_message("Done!", message.chat.id.into(), message.message_id, None)
-                    .await?;
+                    .await?
+                    .into_result()?;
             }
             CommandName::Points => {
                 self.points(message, comm).await?;
