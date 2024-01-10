@@ -1,6 +1,6 @@
 use compact_str::CompactString;
 use derive_more::Display;
-use serde::{ser::Error, Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 use serde_with::skip_serializing_none;
 use std::collections::HashMap;
 

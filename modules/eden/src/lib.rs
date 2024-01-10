@@ -8,7 +8,7 @@ use crate::{
         ImageGenerationProvider, ImageGenerationRequest, ImageGenerationSettings, OpenAIModels,
         Resolution,
     },
-    response::{EdenResponse, ImageGenerationResponse, ImageGenerationResult, Status},
+    response::{EdenResponse, ImageGenerationResult},
 };
 use api::{
     basic_types::ChatIntId,
@@ -20,6 +20,12 @@ use api::{
     proto::{ChatAction, Message},
 };
 use async_trait::async_trait;
+use bincode::{
+    de::Decoder,
+    enc::Encoder,
+    error::{DecodeError, EncodeError},
+    Decode, Encode,
+};
 use bot::{
     bot::command::BotCommandInfo,
     communicator::Communicate,
@@ -27,13 +33,44 @@ use bot::{
     persistence::Persistence,
 };
 use compact_str::{CompactString, ToCompactString};
-use log::{debug, info};
+use log::debug;
 use reqwest::Client;
 use std::{collections::HashMap, str::FromStr};
 
 pub struct Eden {
     https_url: CompactString,
-    last_query: HashMap<ChatIntId, CompactString>,
+    last_query: QueryMap,
+}
+
+#[derive(Default)]
+struct QueryMap(pub HashMap<ChatIntId, CompactString>);
+
+impl Encode for QueryMap {
+    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
+        Encode::encode(
+            &self
+                .0
+                .iter()
+                .map(|(id, query)| (id, query.as_str()))
+                .collect::<HashMap<_, _>>(),
+            encoder,
+        )
+    }
+}
+
+impl Decode for QueryMap {
+    fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
+        #[derive(Decode)]
+        struct Helper(pub HashMap<ChatIntId, String>);
+        let helper: Helper = Decode::decode(decoder)?;
+        Ok(Self(
+            helper
+                .0
+                .into_iter()
+                .map(|(id, query)| (id, query.to_compact_string()))
+                .collect(),
+        ))
+    }
 }
 
 impl Eden {
@@ -133,7 +170,7 @@ impl Module for Eden {
         match CommandName::from_str(cmd.name()) {
             Ok(CommandName::Draw) => {
                 let query = if cmd.query().is_empty() {
-                    match self.last_query.get(&message.chat.id) {
+                    match self.last_query.0.get(&message.chat.id) {
                         None => {
                             debug!("no query to draw");
                             return Ok(());
@@ -141,7 +178,9 @@ impl Module for Eden {
                         Some(last) => last,
                     }
                 } else {
-                    self.last_query.insert(message.chat.id, cmd.query().clone());
+                    self.last_query
+                        .0
+                        .insert(message.chat.id, cmd.query().clone());
                     cmd.query()
                 }
                 .clone();
@@ -186,24 +225,18 @@ impl Persistence for Eden {
 
     fn serialize(&self) -> eyre::Result<Self::Output> {
         Ok(bincode::encode_to_vec(
-            self.last_query
-                .iter()
-                .map(|(chat_id, query)| (chat_id, query.as_str()))
-                .collect::<HashMap<_, _>>(),
+            &self.last_query,
             bincode::config::standard(),
         )?)
     }
 
     fn deserialize(&mut self, input: Self::Input) -> eyre::Result<()> {
-        let last_query = bincode::decode_from_slice::<HashMap<ChatIntId, String>, _>(
+        let last_query = bincode::decode_from_slice::<QueryMap, _>(
             input.as_slice(),
             bincode::config::standard(),
         )?
         .0;
-        self.last_query = last_query
-            .into_iter()
-            .map(|(chat_id, query)| (chat_id, query.to_compact_string()))
-            .collect();
+        self.last_query = last_query;
         Ok(())
     }
 }

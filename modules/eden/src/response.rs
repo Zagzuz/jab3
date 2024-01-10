@@ -1,4 +1,4 @@
-use crate::{endpoints::ImageGeneration, request::ImageGenerationProvider};
+use crate::request::ImageGenerationProvider;
 use compact_str::CompactString;
 use serde::Deserialize;
 use std::{collections::HashMap, fmt::Debug};
