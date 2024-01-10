@@ -24,17 +24,7 @@ pub enum GigaChatModel {
 }
 
 impl ChatCompletionsRequest {
-    pub fn new_latest(initial_message: &str) -> Self {
-        Self {
-            model: GigaChatModel::Latest,
-            messages: vec![GigaChatMessage {
-                role: GigaChatRole::User,
-                content: initial_message.into(),
-            }],
-            ..Default::default()
-        }
-    }
-    pub fn with_history_latest(mut messages: Vec<GigaChatMessage>, new_message: &str) -> Self {
+    pub fn latest(mut messages: Vec<GigaChatMessage>, new_message: &str) -> Self {
         messages.push(GigaChatMessage {
             role: GigaChatRole::User,
             content: new_message.into(),

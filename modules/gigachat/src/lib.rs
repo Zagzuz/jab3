@@ -5,6 +5,7 @@ use crate::{
     response::{AccessTokenResponse, ChatCompletionsResponse},
 };
 use api::{
+    basic_types::ChatIntId,
     endpoints::Endpoint,
     params::{
         eyre,
@@ -25,7 +26,10 @@ use derive_more::Display;
 use log::debug;
 use reqwest::{Certificate, Client};
 use serde::Serialize;
-use std::str::FromStr;
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    str::FromStr,
+};
 use uuid::Uuid;
 
 mod endpoints;
@@ -40,7 +44,7 @@ pub struct GigaChat {
     access_token: CompactString,
     uuid: Uuid,
     cert: Certificate,
-    messages: Vec<GigaChatMessage>,
+    messages: HashMap<ChatIntId, Vec<GigaChatMessage>>,
 }
 
 impl GigaChat {
@@ -58,7 +62,7 @@ impl GigaChat {
             access_token: Default::default(),
             uuid: Uuid::new_v4(),
             cert,
-            messages: vec![],
+            messages: Default::default(),
         }
     }
     pub async fn update_token_if_expired(&mut self) -> eyre::Result<()> {
@@ -95,19 +99,21 @@ impl GigaChat {
         Ok(())
     }
 
-    pub async fn chat_completions(&mut self, query: &str) -> eyre::Result<ChatCompletionsResponse> {
+    pub async fn chat_completions(
+        &mut self,
+        query: &str,
+        chat_id: ChatIntId,
+    ) -> eyre::Result<ChatCompletionsResponse> {
         self.update_token_if_expired().await?;
 
         let url = format!("{}/{}", self.https_url, ChatCompletions::PATH);
 
-        let history = self
-            .messages
-            .iter()
-            .cloned()
-            .rev()
-            .take(100)
-            .collect::<Vec<_>>();
-        let data = ChatCompletionsRequest::with_history_latest(history, query);
+        let history = match self.messages.get(&chat_id) {
+            None => vec![],
+            Some(vs) => vs.iter().rev().cloned().take(100).collect::<Vec<_>>(),
+        };
+
+        let data = ChatCompletionsRequest::latest(history, query);
 
         let client = Client::builder()
             .add_root_certificate(self.cert.clone())
@@ -158,7 +164,7 @@ impl Module for GigaChat {
     ) -> eyre::Result<()> {
         match CommandName::from_str(cmd.name().as_str()) {
             Ok(CommandName::Ask) => {
-                let response = self.chat_completions(cmd.query()).await?;
+                let response = self.chat_completions(cmd.query(), message.chat.id).await?;
 
                 ensure!(!response.choices.is_empty(), "no answer for {cmd:?}");
                 comm.send_chat_action(message.chat.id.into(), None, ChatAction::Typing)
@@ -208,10 +214,17 @@ impl Module for GigaChat {
                     .into_iter()
                     .map(|choice| choice.message)
                     .collect::<Vec<_>>();
-                self.messages.append(&mut messages);
+                match self.messages.entry(message.chat.id) {
+                    Entry::Occupied(mut occupied) => occupied.get_mut().append(&mut messages),
+                    Entry::Vacant(vacant) => {
+                        vacant.insert(messages);
+                    }
+                };
             }
             Ok(CommandName::CarCrash) => {
-                self.messages.clear();
+                if let Some(vs) = self.messages.get_mut(&message.chat.id) {
+                    vs.clear();
+                }
                 comm.reply_message(
                     "Ouch! What happened? Can't remember anything.",
                     message.chat.id.into(),
@@ -235,19 +248,25 @@ impl Persistence for GigaChat {
 
     fn serialize(&self) -> eyre::Result<Self::Output> {
         Ok(bincode::encode_to_vec(
-            (self.token_expires_at.millis(), self.access_token.as_str()),
+            (
+                self.token_expires_at.millis(),
+                self.access_token.as_str(),
+                &self.messages,
+            ),
             bincode::config::standard(),
         )?)
     }
 
     fn deserialize(&mut self, input: Self::Input) -> eyre::Result<()> {
-        let (expires_at, token) = bincode::decode_from_slice::<(i128, String), _>(
-            input.as_slice(),
-            bincode::config::standard(),
-        )?
-        .0;
+        let (expires_at, token, messages) =
+            bincode::decode_from_slice::<
+                (i128, String, HashMap<ChatIntId, Vec<GigaChatMessage>>),
+                _,
+            >(input.as_slice(), bincode::config::standard())?
+            .0;
         self.access_token = token.into();
         self.token_expires_at = Timestamp::from_millis(expires_at);
+        self.messages = messages;
         Ok(())
     }
 }
